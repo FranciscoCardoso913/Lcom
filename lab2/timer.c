@@ -65,10 +65,46 @@ int (timer_get_conf)(uint8_t timer, uint8_t *st) {
 
   return err;
 }
-int (timer_display_conf)(uint8_t timer, uint8_t st,
-                        enum timer_status_field field) {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
 
-  return 1;
+int (timer_display_conf)(uint8_t timer, uint8_t st, enum timer_status_field field) {
+  union timer_status_field_val val;
+  
+  switch(field) {
+    case tsf_all:
+      val.byte = st;
+      break;
+    case tsf_initial:
+      st &= TIMER_LSB_MSB;
+      if (st == TIMER_LSB_MSB) {
+        val.in_mode = MSB_after_LSB;
+      }
+      else if (st == TIMER_LSB) {
+        val.in_mode = LSB_only;
+      }
+      else if (st == TIMER_MSB) {
+        val.in_mode = MSB_only;
+      }
+      else {
+        val.in_mode = INVAL_val; // Retonar erro?
+      }
+      break;
+    case tsf_mode:
+      st &= (BIT(3) | BIT(2) | BIT(1));
+      st >>= 1;
+      val.count_mode = st;
+      break;
+    case tsf_base:
+      val.bcd = st & BIT(0);
+      break;
+    default:
+      fprintf(stderr, "Invalid timer_status_field\n");
+      return 1;
+  }
+
+  if (timer_print_config(timer, field, val)) {
+    fprintf(stderr, "Error in timer_print_config\n");
+    return 1;
+  }
+
+  return 0;
 }
