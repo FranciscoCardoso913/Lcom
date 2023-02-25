@@ -7,9 +7,53 @@
 
 int (timer_set_frequency)(uint8_t timer, uint32_t freq) {
   /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  uint16_t initCount = TIMER_FREQ/freq;
+  uint8_t ctrlWord = 0x0F, status, port, lsb, msb;
+  util_get_LSB(initCount, &lsb);
+  util_get_MSB(initCount, &msb);
 
-  return 1;
+
+  if (timer_get_conf(timer, &status)) {
+    fprintf(stderr, "Error in timer_get_conf\n");
+    return 1;
+  }
+
+  ctrlWord &= status;
+  ctrlWord |= TIMER_LSB_MSB;
+
+  switch(timer) {
+    case 0:
+      port = TIMER_0;
+      break;
+    case 1:
+    port = TIMER_1;
+      ctrlWord |= BIT(6);
+      break;
+    case 2:
+      port = TIMER_2;
+      ctrlWord |= BIT(7);
+      break;
+    default:
+      fprintf(stderr, "Wrong value of timer\n");
+      return 1;
+  }
+  
+  if (sys_outb(TIMER_CTRL, ctrlWord)) {
+    fprintf(stderr, "Error in sys_outb\n");
+    return 1;
+  }
+
+  if (sys_outb(port, lsb)) {
+    fprintf(stderr, "Error in util_sys_inb\n");
+    return 1;
+  }
+
+  if (sys_outb(port, msb)) {
+    fprintf(stderr, "Error in util_sys_inb\n");
+    return 1;
+  }
+
+  return 0;
 }
 
 int (timer_subscribe_int)(uint8_t *bit_no) {
