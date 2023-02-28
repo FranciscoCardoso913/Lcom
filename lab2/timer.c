@@ -5,6 +5,9 @@
 
 #include "i8254.h"
 
+extern int counter;
+extern int hookid;
+
 int (timer_set_frequency)(uint8_t timer, uint32_t freq) {
   /* To be implemented by the students */
   uint16_t initCount = TIMER_FREQ/freq;
@@ -26,7 +29,7 @@ int (timer_set_frequency)(uint8_t timer, uint32_t freq) {
       port = TIMER_0;
       break;
     case 1:
-    port = TIMER_1;
+      port = TIMER_1;
       ctrlWord |= BIT(6);
       break;
     case 2:
@@ -57,22 +60,26 @@ int (timer_set_frequency)(uint8_t timer, uint32_t freq) {
 }
 
 int (timer_subscribe_int)(uint8_t *bit_no) {
-    /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  *bit_no = hookid;
+  if (sys_irqsetpolicy(TIMER0_IRQ, IRQ_REENABLE, &hookid)) {
+    fprintf(stderr, "Error in sys_irqsetpolicy\n");
+    return 1;
+  };
 
-  return 1;
+  return 0;
 }
 
 int (timer_unsubscribe_int)() {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  if (sys_irqrmpolicy(&hookid)) {
+    fprintf(stderr, "Error in sys_irqrmpolicy\n");
+    return 1;
+  }
 
-  return 1;
+  return 0;
 }
 
 void (timer_int_handler)() {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  counter++;
 }
 
 int (timer_get_conf)(uint8_t timer, uint8_t *st) {
