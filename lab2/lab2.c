@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+extern int counter;
 
 int main(int argc, char *argv[]) {
   // sets the language of LCF messages (can be either EN-US or PT-PT)
@@ -30,6 +31,9 @@ int main(int argc, char *argv[]) {
 }
 
 int(timer_test_read_config)(uint8_t timer, enum timer_status_field field) {
+    // check valid timer
+    if (timer < 0 || timer > 2) return 1;
+
     u_int8_t st;
     if (timer_get_conf(timer, &st)) return 1;
     if (timer_display_conf(timer, st, field)) return 1;
@@ -37,15 +41,46 @@ int(timer_test_read_config)(uint8_t timer, enum timer_status_field field) {
 }
 
 int(timer_test_time_base)(uint8_t timer, uint32_t freq) {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
-
-  return 1;
+    // check valid timer
+    if (timer < 0 || timer > 2) return 1;
+    
+    if (timer_set_frequency(timer, freq)) return 1;
+    return 0;
 }
 
 int(timer_test_int)(uint8_t time) {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+    // subscribe timer 0 interrupts
+    uint8_t irq_set;
+    if (timer_subscribe_int(&irq_set)) return 1;
 
-  return 1;
+    // set timer 0 to interrupt at 60Hz
+    if (timer_set_frequency(0, 60)) return 1;
+
+    // loop until time seconds have passed
+    int ipc_status;
+    message msg;
+    uint8_t r;
+    while (counter < time*60) {
+        if ((r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
+            printf("driver_receive failed with: %d", r);
+            continue;
+        }
+        if (is_ipc_notify(ipc_status)) {
+            switch (_ENDPOINT_P(msg.m_source)) {
+                case HARDWARE:
+                    if (msg.m_notify.interrupts & BIT(irq_set)) {
+                        timer_int_handler();
+                        if (counter % (int) sys_hz() == 0) timer_print_elapsed_time();
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    // unsubscribe timer 0 interrupts
+    if (timer_unsubscribe_int()) return 1;
+
+    return 0;
 }
