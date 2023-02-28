@@ -32,16 +32,51 @@ void (timer_int_handler)() {
 }
 
 int (timer_get_conf)(uint8_t timer, uint8_t *st) {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  
+  uint8_t read_back_command = TIMER_RB_CMD | TIMER_RB_SEL(timer) | TIMER_RB_COUNT_;
+
+   
+  if (sys_outb(TIMER_CTRL, read_back_command) != OK) {
+    printf("Error writing to the timer control register! \n");
+    return 1;
+  }
+
+  switch (timer) {
+    case 0:
+      return util_sys_inb(TIMER_0 + timer, st); 
+
+    case 1:
+      return util_sys_inb(TIMER_1 + timer, st);
+
+    case 2:
+      return util_sys_inb(TIMER_2 + timer, st);
+      
+  }
 
   return 1;
 }
 
 int (timer_display_conf)(uint8_t timer, uint8_t st,
                         enum timer_status_field field) {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
 
-  return 1;
+  union timer_status_field_val value;
+  uint8_t mask = (BIT(3) | BIT(2) | BIT(1)); 
+
+  switch (field) {
+    case tsf_all:
+      value.byte = st;
+      break;
+    case tsf_initial:
+      value.in_mode = (st & TIMER_LSB_MSB) >> 4;
+      break;
+    case tsf_mode:
+      value.count_mode = (st & mask) >> 1; 
+      break;
+    case tsf_base:
+      value.bcd = st & TIMER_BCD;
+      break;
+  }
+
+  return timer_print_config(timer, field, value);
+
 }
