@@ -140,9 +140,11 @@ int (timer_display_conf)(uint8_t timer, uint8_t st, enum timer_status_field fiel
       }
       break;
     case tsf_mode:
-      st &= (BIT(3) | BIT(2) | BIT(1));
-      st >>= 1;
-      val.count_mode = st;
+        st &= (BIT(3) | BIT(2) | BIT(1));
+        st >>= 1;
+        if (st == 6) val.count_mode = 2;        // 2 maps to 2 different binary values
+        else if (st == 7) val.count_mode = 3;   // 3 maps to 2 different binary values
+        else val.count_mode = st;
       break;
     case tsf_base:
       val.bcd = st & BIT(0);
