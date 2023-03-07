@@ -83,7 +83,27 @@ int(kbd_test_scan)() {
     return 0;
 }
 
-int(kbd_test_poll)() {
+int(kbd_test_poll)() {    
+    do {
+        if (util_sys_inb(STAT_REG, &status)) return 1;
+        if (status & OBF) {
+            kbc_ih();
+            if (ret) return 1;
+            if (size == 0) {
+                bytes[size] = scancode;
+                if (scancode == TWO_BYTE_CODE) size++;
+                else kbd_print_scancode(!(scancode & MAKE_BIT), size+1, bytes);
+            }
+            else {
+                bytes[size] = scancode;
+                size = 0;
+                kbd_print_scancode(!(scancode & MAKE_BIT), size+2, bytes);
+            }
+        }
+        tickdelay(micros_to_ticks(DELAY_US));
+    } while (scancode != ESC_BREAK);
+
+    return 0;
 }
 
 int(kbd_test_timed_scan)(uint8_t n) {
