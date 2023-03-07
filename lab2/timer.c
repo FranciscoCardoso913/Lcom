@@ -5,71 +5,80 @@
 
 
 #include "i8254.h"
+extern int counter;
+extern int hook_id;
+
 
 int (timer_set_frequency)(uint8_t timer, uint32_t freq) {
   /* To be implemented by the students */
   uint8_t st;
   if(timer_get_conf(timer,&st)){
-    printf("Error in time_get_config");
+    printf("Error in time_get_config\n");
     return 1;
   };
-  uint8_t word = ((BIT(3)|BIT(2)|BIT(0)|BIT(1)) & (st))| TIMER_LSB_MSB|TIMER_RB_SEL(timer);
-  uint8_t f=TIMER_FREQ/freq;
+  uint8_t word = ((BIT(3)|BIT(2)|BIT(1)|BIT(0)) & (st))| TIMER_LSB_MSB;
+  uint16_t f=TIMER_FREQ/freq;
   uint8_t lsb;
   uint8_t msb;
   uint8_t port;
   switch (timer)
   {
-  case 0:
-    port=TIMER_0;
-    break;
-  case 1:
-    port=TIMER_1;
-    break;
-  case 2:
-    port=TIMER_2;
-    break;  
-  default:
-  printf("Invalid timer");
-  return 1;
-    break;
+    case 0:
+      port=TIMER_0;
+      break;
+    case 1:
+      word|=BIT(6);
+      port=TIMER_1;
+      break;
+    case 2:
+    word|=BIT(7);
+      port=TIMER_2;
+      break;  
+    default:
+      printf("Invalid timer\n");
+    return 1;
+      break;
+  }
+  if(sys_outb(TIMER_CTRL,word)){
+    printf("Error in making the request.");
+    return 1;
   }
   util_get_LSB(f,&lsb);
   util_get_MSB(f,&msb);
-  if(sys_outb(TIMER_CTRL,word)){
-    printf("ERROR");
-    return 1;
-  }
+  
   if(sys_outb(port,lsb)){
-     printf("ERROR");
+    printf("Error in the lsb");
     return 1;
   }
   if(sys_outb(port,msb)){
-     printf("ERROR");
+    printf("Error in the msb");
     return 1;
   }
-
 
   return 0;
 }
 
 int (timer_subscribe_int)(uint8_t *bit_no) {
-    /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+   *bit_no=hook_id;
+    if(sys_irqsetpolicy(TIMER0_IRQ,IRQ_REENABLE, &hook_id)){
+      printf("Error in sys_irqsetpolicy");
+      return 1;
+    };
 
-  return 1;
+  return 0;
 }
 
 int (timer_unsubscribe_int)() {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  if(sys_irqrmpolicy(&hook_id)){
+    printf("Error in sys_irqsetpolicy");
+    return 1;
+  };
 
-  return 1;
+  return 0;
 }
 
 void (timer_int_handler)() {
-  /* To be implemented by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  counter++;
 }
 
 int (timer_get_conf)(uint8_t timer, uint8_t *st) {
@@ -109,7 +118,7 @@ int (timer_get_conf)(uint8_t timer, uint8_t *st) {
 
 int (timer_display_conf)(uint8_t timer, uint8_t st,
                         enum timer_status_field field) {
- union timer_status_field_val value;
+union timer_status_field_val value;
 uint8_t aux;
  switch (field)
  {
