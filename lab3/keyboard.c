@@ -35,3 +35,14 @@ void (kbc_ih)() {
     }
 }
 
+int kbd_enable_int() {
+    uint8_t cmd;
+    if (sys_outb(STAT_REG, 0x20)) return 1;
+    util_sys_inb(OUT_BUF, &cmd);
+    cmd |= OBF;
+    if (sys_outb(STAT_REG, 0x60)) return 1;
+    if (sys_outb(OUT_BUF, cmd)) return 1;
+
+    return 0;
+}
+

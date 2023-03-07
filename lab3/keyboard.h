@@ -36,12 +36,16 @@ int ret;
 // make or break bit
 #define MAKE_BIT BIT(7)
 
+// output buffer full
+#define OBF BIT(0)
+
 // if two byte code then first byte is 0xE0
 #define TWO_BYTE_CODE 0xE0
 
 int (kbd_subscribe_int)(uint8_t *bit_no);
 int (kbd_unsubscribe_int)();
 void (kbc_ih)();
+int kbd_enable_int();
 
 
 #endif /* _LCOM_KEYBOARD_H */
