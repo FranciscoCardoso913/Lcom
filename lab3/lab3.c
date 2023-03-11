@@ -1,11 +1,13 @@
 #include <lcom/lcf.h>
-#include <lcom/lab2.h>  
+#include <lcom/lab3.h>
 
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "kbc.h"
 
-int main(int argc, char *argv[]) {
+
+int main(int argc, char *argv[]) {  
   // sets the language of LCF messages (can be either EN-US or PT-PT)
   lcf_set_language("EN-US");
 
@@ -29,57 +31,48 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int(timer_test_read_config)(uint8_t timer, enum timer_status_field field) {
-  /* To be implemented by the students */
-  uint8_t status;
-  if (timer_get_conf(timer, &status)) {
-    fprintf(stderr, "Error in timer_get_conf\n");
-    return 1;
-  }
-  if (timer_display_conf(timer, status, field)) {
-    fprintf(stderr, "Error in timer_display_conf\n");
-    return 1;
-  }
-  return 0;
-}
 
-int(timer_test_time_base)(uint8_t timer, uint32_t freq) {
-  /* To be implemented by the students */
-  if (timer_set_frequency(timer, freq)) {
-    fprintf(stderr, "Error in timer_set_frequency\n");
-    return 1;
-  }
+/* Global variables */
 
-  return 0;
-}
+int hookid, err;
+extern int cnt;
+uint8_t status, scanCode;
 
-int counter;
-int hookid = 0;
-
-int(timer_test_int)(uint8_t time) {
-  int r;
-  uint8_t irqset;
-  counter = 0;
-
-  int ipc_status;
+int (kbd_test_scan)() {
+  int r, ipc_status;
+  uint8_t irqset, idx = 0;
   message msg;
+  hookid = 0;
+  bool ignore = false;
+  uint8_t scanCodes[2];
 
-  if (timer_subscribe_int(&irqset)) {
-    fprintf(stderr, "Error when subscribing\n");
-    return 1;
-  }
+  if (kbd_subscribe_int(&irqset)) return 1;
 
-  while (counter < time*60) {
+  while (scanCode != ESC_CODE) {
     if ( (r = driver_receive(ANY, &msg, &ipc_status) ) != 0) {
       fprintf(stderr, "driver_receive failed with: %d\n", r);
       continue;
     }
     if (is_ipc_notify(ipc_status)) {
       switch(_ENDPOINT_P(msg.m_source)) {
-        case HARDWARE:
+        case HARDWARE: 
           if (msg.m_notify.interrupts & BIT(irqset)) {
-            timer_int_handler();
-            if (counter % (int) sys_hz() == 0) timer_print_elapsed_time();
+            kbc_ih();
+
+            if (err == 1)
+              continue;
+            else if (err == 2)
+              ignore = true;
+            
+            if (scanCode == TWO_BYTE_CODE) {
+              scanCodes[idx++] = scanCode;
+            }
+            else {
+              scanCodes[idx] = scanCode;
+              bool isMakecode = idx == 0 ? !(scanCodes[0] & BIT(7)) : !(scanCodes[1] & BIT(7));
+              kbd_print_scancode(isMakecode, idx + 1, scanCodes);
+              idx = 0;
+            }
           }
           break;
         default:
@@ -89,10 +82,8 @@ int(timer_test_int)(uint8_t time) {
     else {}
   }
 
-  if (timer_unsubscribe_int()) {
-    fprintf(stderr, "Error when unsubscribing\n");
-    return 1;
-  }
+  if (kbd_unsubscribe_int()) return 1;
+  kbd_print_no_sysinb(cnt);
 
   return 0;
 }

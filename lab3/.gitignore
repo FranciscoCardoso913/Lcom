@@ -1,0 +1,5 @@
+*.o
+lab3
+.gdbinit
+.depend
+*.d
