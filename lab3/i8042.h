@@ -19,6 +19,7 @@
 /* Status bits */
 #define KBC_ST_IBF BIT(1)
 #define KBC_ST_OBF BIT(0)
+#define KBC_ST_AUX BIT(5)
 #define KBC_PAR_ERROR BIT(7)
 #define KBC_TO_ERROR BIT(6)
 
@@ -29,6 +30,10 @@
 #define CHECK_KBD_INTERFACE 0xAB
 #define DISABLE_KBD 0xAD
 #define ENABLE_KBD 0xAE
+
+/* Change command byte */
+#define ENABLE_KBC_INTERRUPT 0x01
+#define DISABLE_KBC_INTERFACE BIT(4)
 
 /* Check KBD interface returns */
 #define KBD_INTERFACE_FAILURE 0xFC

@@ -16,6 +16,6 @@ int kbc_cmd_write(uint8_t port, uint8_t byte);
 
 int kbc_cmd_read(uint8_t *val);
 
-uint8_t kbc_command(uint8_t cmd, uint8_t arg[]);
+uint8_t kbc_command(uint8_t cmd, uint8_t arg[], int argc);
 
 #endif // KBC

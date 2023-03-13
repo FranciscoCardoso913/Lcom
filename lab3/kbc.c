@@ -34,14 +34,20 @@ void (kbc_ih)() {
   if (kbc_read_status()) {
     fprintf(stderr, "Error when reading kbc status\n");
     err = 1;
+    return;
   }
   
   if (status & KBC_ST_OBF) {
-    util_sys_inb(OUT_BUF, &scanCode);
+    if (util_sys_inb(OUT_BUF, &scanCode)) {
+      fprintf(stderr, "Error while reading output buffer\n");
+      err = 1;
+      return;                                       
+    }
 
     if (status & (KBC_PAR_ERROR | KBC_TO_ERROR)) {
       fprintf(stderr, "Invalid data read from kbc\n");
       err = 2;
+      return;
     }
   }
 
@@ -75,7 +81,7 @@ int kbc_cmd_write(uint8_t port, uint8_t byte) {
   while (tries) {
     if (kbc_read_status()) continue;
 
-    if (status & KBC_ST_IBF == 0) {
+    if ((status & KBC_ST_IBF) == 0) {
       sys_outb(port, byte);
       return 0;
     }
@@ -87,8 +93,7 @@ int kbc_cmd_write(uint8_t port, uint8_t byte) {
   return 1;
 }
 
-uint8_t kbc_command(uint8_t cmd, uint8_t arg[]) {
-  int tries = 10;
+uint8_t kbc_command(uint8_t cmd, uint8_t argv[], int argc) {
   uint8_t val;
 
   /* Write command to kbc */
@@ -102,6 +107,7 @@ uint8_t kbc_command(uint8_t cmd, uint8_t arg[]) {
     case READ_CMD:
       if (kbc_cmd_read(&val)) {
         fprintf(stderr, "Error while reading command byte\n");
+        err = 1;
         return 1;
       }
 
@@ -109,21 +115,28 @@ uint8_t kbc_command(uint8_t cmd, uint8_t arg[]) {
       break;
     
     case WRITE_CMD:
-      if (kbc_cmd_write(ARG_REG, arg[0])) {
-        fprintf(stderr, "Couldn't write command's arg to kbc\n");
-        return 1;
+      for (int i = 0; i < argc; i++) {
+
+        if (kbc_cmd_write(ARG_REG, argv[i])) {
+          fprintf(stderr, "Couldn't write command's arg to kbc\n");
+          err = 1;
+          return 1;
+        }
       }
+      return 0;
       
       break;
 
     case CHECK_KBC_CMD:
       if (kbc_cmd_read(&val) || val == KBD_INTERFACE_FAILURE) {
         fprintf(stderr, "Error while reading command byte\n");
+        err = 1;
         return 1;
       }
       else if (val == KBD_INTERFACE_SUCCESS)
         return 0;
       else {
+        err = 1;
         return 1;
       }
       break;
@@ -131,6 +144,7 @@ uint8_t kbc_command(uint8_t cmd, uint8_t arg[]) {
     case CHECK_KBD_INTERFACE:
       if (kbc_cmd_read(&val) || val != 0) {
         fprintf(stderr, "Error while reading command byte\n");
+        err = 1;
         return 1;
       }
       return 0;
@@ -140,4 +154,6 @@ uint8_t kbc_command(uint8_t cmd, uint8_t arg[]) {
       return 0;
       break;
   }
+
+  return -1;
 }
