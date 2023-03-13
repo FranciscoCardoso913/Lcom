@@ -36,7 +36,7 @@ void (kbc_ih)() {
     err = 1;
   }
   
-  if (status & OUT_BUF_FULL) {
+  if (status & KBC_ST_OBF) {
     util_sys_inb(OUT_BUF, &scanCode);
 
     if (status & (KBC_PAR_ERROR | KBC_TO_ERROR)) {
@@ -44,6 +44,100 @@ void (kbc_ih)() {
       err = 2;
     }
   }
-  
+
   err = 0;
+}
+
+int kbc_cmd_read(uint8_t *val) {
+  int tries = 10;
+
+  while (tries) {
+    if (kbc_read_status()) continue;
+
+    if (status & KBC_ST_OBF) {
+      util_sys_inb(OUT_BUF, val);
+
+      if (status & (KBC_PAR_ERROR | KBC_TO_ERROR))
+        return 1;
+      return 0;
+    }
+
+    tries--;
+    tickdelay(DELAY);
+  }
+  
+  return 1;
+}
+
+int kbc_cmd_write(uint8_t port, uint8_t byte) {
+  int tries = 10;
+
+  while (tries) {
+    if (kbc_read_status()) continue;
+
+    if (status & KBC_ST_IBF == 0) {
+      sys_outb(port, byte);
+      return 0;
+    }
+
+    tries--;
+    tickdelay(DELAY);
+  }
+
+  return 1;
+}
+
+uint8_t kbc_command(uint8_t cmd, uint8_t arg[]) {
+  int tries = 10;
+  uint8_t val;
+
+  /* Write command to kbc */
+  if (kbc_cmd_write(IN_BUF, cmd)) {
+    fprintf(stderr, "Couldn't write command to kbc\n");
+    return 1;
+  }
+  
+  /* Different action depending on command */
+  switch(cmd) {
+    case READ_CMD:
+      if (kbc_cmd_read(&val)) {
+        fprintf(stderr, "Error while reading command byte\n");
+        return 1;
+      }
+
+      return val;
+      break;
+    
+    case WRITE_CMD:
+      if (kbc_cmd_write(ARG_REG, arg[0])) {
+        fprintf(stderr, "Couldn't write command's arg to kbc\n");
+        return 1;
+      }
+      
+      break;
+
+    case CHECK_KBC_CMD:
+      if (kbc_cmd_read(&val) || val == KBD_INTERFACE_FAILURE) {
+        fprintf(stderr, "Error while reading command byte\n");
+        return 1;
+      }
+      else if (val == KBD_INTERFACE_SUCCESS)
+        return 0;
+      else {
+        return 1;
+      }
+      break;
+
+    case CHECK_KBD_INTERFACE:
+      if (kbc_cmd_read(&val) || val != 0) {
+        fprintf(stderr, "Error while reading command byte\n");
+        return 1;
+      }
+      return 0;
+      break;
+    
+    default:
+      return 0;
+      break;
+  }
 }

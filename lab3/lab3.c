@@ -87,3 +87,7 @@ int (kbd_test_scan)() {
 
   return 0;
 }
+
+int (kbd_test_poll)() {
+  
+}
