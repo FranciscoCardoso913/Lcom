@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <../lab2/i8254.h>
 
 #include "kbc.h"
 
@@ -34,15 +35,16 @@ int main(int argc, char *argv[]) {
 
 /* Global variables */
 
-int hookid, err = 0;
+int hookid_kbc, hookid_timer, err = 0;
 extern int cnt;
+int counter = 0;
 uint8_t status, scanCode;
 
 int (kbd_test_scan)() {
   int r, ipc_status;
   uint8_t irqset, idx = 0;
   message msg;
-  hookid = 0;
+  hookid_kbc = 0;
   bool ignore = false;
   uint8_t scanCodes[2];
 
@@ -143,6 +145,78 @@ int (kbd_test_poll)() {
 
   if (kbd_print_no_sysinb(cnt)) {
     fprintf(stderr, "Error when executing kbd_print_no_sysinb\n");
+  }
+  
+  return 0;
+}
+
+int (kbd_test_timed_scan)(uint8_t n) {
+  message msg;
+  hookid_timer = 0; hookid_kbc = 1;
+  uint8_t irqset_timer, irqset_kbc;
+  uint8_t bytes[2], idx = 0;
+  int r, ipc_status, lastUpdated = 0;
+
+  if (timer_subscribe_int(&irqset_timer)) {
+    printf("Error while subscribing to timer\n");
+    return 1;
+  }
+
+  if (kbd_subscribe_int(&irqset_kbc)) {
+    printf("Error while subscribing to kbd\n");
+    return 1;
+  }
+
+  while (scanCode != ESC_CODE && (counter - lastUpdated) < (int) (n*sys_hz())) {
+    if ( (r = driver_receive(ANY, &msg, &ipc_status) ) != 0) {
+      fprintf(stderr, "driver_receive failed with: %d\n", r);
+      continue;
+    }
+    if (is_ipc_notify(ipc_status)) {
+      switch(_ENDPOINT_P(msg.m_source)) {
+        case HARDWARE: 
+          if (msg.m_notify.interrupts & BIT(irqset_kbc)) {
+            kbc_ih();
+
+            if (err == 1)
+              continue;
+            else if (err == 2) {
+              idx = 0;
+              continue;
+            }
+            
+            if (scanCode == TWO_BYTE_CODE) {
+              bytes[idx++] = scanCode;
+            }
+            else {
+              bytes[idx] = scanCode;
+              bool isMakecode = idx == 0 ? !(bytes[0] & BIT(7)) : !(bytes[1] & BIT(7));
+              kbd_print_scancode(isMakecode, idx + 1, bytes);
+              lastUpdated = counter;
+              idx = 0;
+            }
+          }
+
+          if (msg.m_notify.interrupts & BIT(irqset_timer)) {
+            timer_int_handler();
+          }
+          
+          break;
+        default:
+          break;
+      }
+    }
+    else {}
+  }
+
+  if (timer_unsubscribe_int()) {
+    printf("Error while unsubscribing to timer\n");
+    return 1;
+  }
+
+  if (kbd_unsubscribe_int()) {
+    printf("Error while unsubscribing to kbd\n");
+    return 1;
   }
 
   return 0;

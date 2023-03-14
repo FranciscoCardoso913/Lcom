@@ -3,7 +3,7 @@
 
 #include <lcom/lcf.h>
 
-#define KBD_IRQ 1
+#define KBC_IRQ 1
 
 /* Constant Make/Break codes */
 #define ESC_CODE 0x81
