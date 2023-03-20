@@ -85,7 +85,8 @@ int(mouse_test_packet)(uint32_t cnt) {
             counter = 0;
             continue;
           }
-
+          
+          pp.bytes[counter] = byte;
           bytes[counter++] = byte;
 
           // Write packet
@@ -95,7 +96,7 @@ int(mouse_test_packet)(uint32_t cnt) {
             pp.mb = bytes[0] & BIT(2);
             pp.lb = bytes[0] & BIT(0);
             pp.delta_x = bytes[0] & BIT(4) ? bytes[1] | 0xFF : bytes[1];
-            pp.delta_y = bytes[0] & BIT(4) ? bytes[2] | 0xFF : bytes[2];
+            pp.delta_y = bytes[0] & BIT(5) ? bytes[2] | 0xFF : bytes[2];
             pp.x_ov = bytes[0] & BIT(6);
             pp.y_ov = bytes[0] & BIT(7);
 

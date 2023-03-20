@@ -14,7 +14,7 @@ int read_outbuffer(uint8_t *res) {
 	int tries = 10;
 	uint8_t status;
 
-	while (tries--) {
+	while (tries) {
 		if (read_status(&status)) {
 			fprintf(stderr, "Error while reading status\n");
 			continue;
@@ -27,13 +27,14 @@ int read_outbuffer(uint8_t *res) {
 			}
 
 			if (status & (KBC_PAR_ERROR | KBC_TO_ERROR) || !(status & KBC_ST_AUX)) {
-        fprintf(stderr, "Parity, timeout or data not comingo from mouse error\n");
+        fprintf(stderr, "Parity, timeout or data not coming from mouse error\n");
 				return 1;
 			}
 			return 0;
 		}
 
 		tickdelay(DELAY);
+    tries--;
 	}
   fprintf(stderr, "timeout\n");
 	return 1;
