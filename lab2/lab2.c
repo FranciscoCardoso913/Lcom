@@ -49,13 +49,14 @@ int(timer_test_time_base)(uint8_t timer, uint32_t freq) {
   return 0;
 }
 int counter;
-int hook_id;
+int timer_hook_id;
 int(timer_test_int)(uint8_t time) {
   int r;
   counter = 0;
+  uint8_t timer_bit;
   int ipc_status;
   message msg;
-  if(timer_subscribe_int(&hook_id)){
+  if(timer_subscribe_int(&timer_bit)){
     printf("Error while subscribing.");
     return 1;
   }
@@ -68,7 +69,7 @@ int(timer_test_int)(uint8_t time) {
     if (is_ipc_notify(ipc_status)) { /* received notification *11:*/
       switch (_ENDPOINT_P(msg.m_source)) {
         case HARDWARE: /* hardware interrupt notification */
-          if (msg.m_notify.interrupts & BIT(hook_id)) { 
+          if (msg.m_notify.interrupts & BIT(timer_bit)) { 
             timer_int_handler();
             if(counter%(int) sys_hz()==0){
               timer_print_elapsed_time();

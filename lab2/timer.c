@@ -6,7 +6,7 @@
 
 #include "i8254.h"
 extern int counter;
-extern int hook_id;
+extern int timer_hook_id;
 
 
 int (timer_set_frequency)(uint8_t timer, uint32_t freq) {
@@ -59,8 +59,8 @@ int (timer_set_frequency)(uint8_t timer, uint32_t freq) {
 }
 
 int (timer_subscribe_int)(uint8_t *bit_no) {
-   *bit_no=hook_id;
-    if(sys_irqsetpolicy(TIMER0_IRQ,IRQ_REENABLE, &hook_id)){
+   *bit_no=timer_hook_id;
+    if(sys_irqsetpolicy(TIMER0_IRQ,IRQ_REENABLE, &timer_hook_id)){
       printf("Error in sys_irqsetpolicy");
       return 1;
     };
@@ -69,7 +69,7 @@ int (timer_subscribe_int)(uint8_t *bit_no) {
 }
 
 int (timer_unsubscribe_int)() {
-  if(sys_irqrmpolicy(&hook_id)){
+  if(sys_irqrmpolicy(&timer_hook_id)){
     printf("Error in sys_irqsetpolicy");
     return 1;
   };
