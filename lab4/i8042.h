@@ -14,7 +14,7 @@
 
 #define OUT_BUF 0x60
 #define ARG_REG 0x60
-#define STAT_REG 0x64
+#define STATUS_REG 0x64
 #define IN_BUF 0x64
 
 /* Status bits */
@@ -45,12 +45,25 @@
 #define ENABLE_DATA_REP 0xF4
 #define DISABLE_DATA_REP 0xF5
 
+/* Mouse byte info */
+#define MOUSE_LB BIT(0)
+#define MOUSE_RB BIT(1)
+#define MOUSE_MB BIT(2)
+#define MOUSE_ALWAYS_ON BIT(3)
+#define MOUSE_MSBX_DELTA BIT(4)
+#define MOUSE_MSBY_DELTA BIT(5)
+#define MOUSE_X_OVFL BIT(6)
+#define MOUSE_Y_OVFL BIT(7)
+
 /* Mouse commands responses */
-#define ACK 0xFA
-#define NACK 0xFE
-#define ERROR 0xFC
+#define MOUSE_ACK 0xFA
+#define MOUSE_NACK 0xFE
+#define MOUSE_ERROR 0xFC
 
 /* Delay in ticks */
 #define DELAY 20
+
+/* General errors */
+#define TIMEOUT_ERR 2
 
 #endif //_LCOM_I8042_H
