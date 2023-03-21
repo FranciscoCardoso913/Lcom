@@ -31,8 +31,9 @@ int main(int argc, char *argv[]) {
 }
 
 int hook_id = 0;
+int timer_hook_id = 1;
 extern int counter;
-uint8_t scancode;
+uint8_t scancode, status;
 
 int(kbd_test_scan)() {
   
@@ -60,7 +61,7 @@ int(kbd_test_scan)() {
         
         kbc_ih();
 
-        if(scancode == 0xE0) {
+        if(scancode == TWO_BYTE) {
           bytes[i] = scancode;
           i++;
           continue;
@@ -83,16 +84,111 @@ int(kbd_test_scan)() {
   return kbd_print_no_sysinb(counter);
 }
 
-int(kbd_test_poll)() {
-  /* To be completed by the students */
-  printf("%s is not yet implemented!\n", __func__);
 
-  return 1;
+
+extern int cnt;
+
+int(kbd_test_poll)() {
+  
+  uint8_t bytes[2];
+  int i = 0; 
+  uint8_t enable;
+  counter = 0;
+
+  do {
+
+    int check = kbc_read_data(&scancode);
+
+    if (check == 2) {
+      continue;
+    }
+    else if (check == 1) {
+      printf("Error reading the data");
+      break;
+    }
+    
+    if (scancode == TWO_BYTE){
+      bytes[i] = scancode;
+      i++;
+      continue;
+    }
+    bytes[i] = scancode;
+    kbd_print_scancode(!(scancode & BR_MK), i+1, bytes);
+    i = 0;
+
+
+  }while (scancode != ESC_BRK);
+
+  kbd_write_cmd(IN_BUF, READ_CMD_B);
+  if (util_sys_inb(OUT_BUF, &enable)) {
+    printf("Error reading the data");
+    return 1;
+  }
+  enable = enable | INT;
+  kbd_write_cmd(IN_BUF, WRITE_CMD_B);
+  kbd_write_cmd(IN_BUF_ARG, enable);
+
+
+  return kbd_print_no_sysinb(counter);
+
 }
 
 int(kbd_test_timed_scan)(uint8_t n) {
-  /* To be completed by the students */
-  printf("%s is not yet implemented!\n", __func__);
+  
+  uint8_t bytes[2], timer_irq, kbd_irq;
+  int i = 0, r, ipc_status;
+  message msg;
 
-  return 1;
+  if(kbd_subscribe_int(&kbd_irq)) {
+    return 1;
+  }
+
+  if(timer_subscribe_int(&timer_irq)) {
+    return 1;
+  }
+
+  while((scancode != ESC_BRK) && ((cnt/60) < n)) {
+
+    if ( (r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
+      printf("driver_receive failed with: %d", r);
+      return 1;
+    }
+
+    if (is_ipc_notify(ipc_status) && _ENDPOINT_P(msg.m_source) == HARDWARE) {
+
+      if(msg.m_notify.interrupts & BIT(timer_irq)) {
+        timer_int_handler();
+      }
+
+      if (msg.m_notify.interrupts & BIT(kbd_irq)) {
+        
+        kbc_ih();
+
+        if(scancode == TWO_BYTE) {
+          bytes[i] = scancode;
+          i++;
+          continue;
+        }
+        bytes[i] = scancode;
+        kbd_print_scancode(!(scancode & BR_MK), i+1, bytes);
+        i = 0;
+        cnt = 0;   
+
+      }
+
+    }
+
+  }
+
+  if( kbd_unsubscribe_int() != OK ) {
+    return 1;
+  }
+
+  if(timer_unsubscribe_int() != OK) {
+    return 1;
+  }
+
+  return kbd_print_no_sysinb(counter);
+
+
 }
