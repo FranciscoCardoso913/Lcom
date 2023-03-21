@@ -93,7 +93,7 @@ int (mouse_test_packet)(uint32_t cnt) {
 	return 0;
 }
 
-extern uint32_t counter;
+extern int counter;
 
 int (mouse_test_async)(uint8_t idle_time) {
   message msg;
@@ -115,7 +115,7 @@ int (mouse_test_async)(uint8_t idle_time) {
     return 1;
   }
 
-  while (counter < sys_hz() * idle_time) {
+  while (counter < (int) (idle_time*sys_hz())) {
     if ( (r = driver_receive(ANY, &msg, &ipc_status) ) != 0) {
       fprintf(stderr, "driver_receive failed with: %d\n", r);
       continue;

@@ -1,7 +1,7 @@
 #include <lcom/lcf.h>
 #include <../lab2/i8254.h>
 
-uint32_t counter = 0;
+int counter = 0;
 int hookid_timer = 1;
 
 int (timer_subscribe_int) (uint8_t *bit_no) {

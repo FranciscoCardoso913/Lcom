@@ -134,13 +134,11 @@ void (mouse_ih)() {
       printf("Parity or timeout error when reading mouse data\n");
       return;
     }
-  }
 
-  if (idx == 0 && !(byte & MOUSE_ALWAYS_ON)) {
-    printf("Mouse wasn't synched\n");
-    return;
-  }
-  else {
+    if (idx == 0 && !(byte & MOUSE_ALWAYS_ON)) {
+      printf("Mouse wasn't synched\n");
+      return;
+    }
     pp.bytes[idx++] = byte;
   }
 }
