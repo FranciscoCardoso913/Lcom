@@ -1,6 +1,9 @@
 {
     "files.associations": {
         "lab3.h": "c",
-        "timer.h": "c"
+        "timer.h": "c",
+        "lab4.h": "c",
+        "i8042.h": "c",
+        "lcf.h": "c"
     }
 }

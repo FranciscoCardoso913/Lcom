@@ -4,6 +4,7 @@
 #include <lcom/lcf.h>
 
 #define KBD_IRQ 1
+#define MOUSE_IRQ 12
 
 /* Constant Make/Break codes */
 #define ESC_CODE 0x81
@@ -29,6 +30,10 @@
 #define CHECK_KBD_INTERFACE 0xAB
 #define DISABLE_KBD 0xAD
 #define ENABLE_KBD 0xAE
+#define DISABLE_MOUSE 0xA7
+#define ENABLE_MOUSE 0xA8
+#define CHECK_MOUSE_INTERFACE 0xA9
+#define WRITE_MOUSE 0xD4
 
 /* Check KBD interface returns */
 #define KBD_INTERFACE_FAILURE 0xFC
