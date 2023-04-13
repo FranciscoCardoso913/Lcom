@@ -9,6 +9,7 @@
  * Constants for programming the i8254 Timer. Needs to be completed.
  */
 
+#define TIMER_BIT_NUMBER 0
 #define TIMER_FREQ 1193182 /**< @brief clock frequency for timer in PC and AT */
 #define TIMER0_IRQ 0 /**< @brief Timer 0 IRQ line */
 
@@ -38,7 +39,7 @@
 
 /* Operating mode: bits 3, 2 and 1 */
 
-#define TIMER_SQR_WAVE (BIT(2) | BIT(1)) /**< @brief Mode 3: square wave generator */
+#define TIMER_WAVE (BIT(3) | BIT(2) | BIT(1)) /**< @brief Mode 3: square wave generator */
 #define TIMER_RATE_GEN BIT(2)            /**< @brief Mode 2: rate generator */
 
 /* Counting mode: bit 0 */
@@ -51,6 +52,8 @@
 #define TIMER_RB_COUNT_  BIT(5)
 #define TIMER_RB_STATUS_ BIT(4)
 #define TIMER_RB_SEL(n)  BIT((n) + 1)
+#define TIMER_COUNTER_INIT (BIT(5) | BIT(4))
+#define TIMER_COUNT_MODE (BIT(3) | BIT(2) | BIT(1))
 
 /**@}*/
 
