@@ -58,7 +58,7 @@ int (keyboard_restore_int)() {
     keyboard_write(KBC_IN_BUF_UP, KBC_READ_CMD);
     keyboard_read(KBC_OUT_BUF, &cmd);
     
-    cmd |= 1;
+    cmd |= KBC_INT;
 
     keyboard_write(KBC_IN_BUF_UP, KBC_WRITE_CMD);
     keyboard_write(KBC_IN_BUF_DN, cmd);
