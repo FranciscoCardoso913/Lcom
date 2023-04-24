@@ -72,3 +72,25 @@ int (init_vars)(uint16_t mode) {
 
     return 0;
 }
+
+int (video_draw_rectangle)(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color) {
+    for (int i = 0; i < height && i < vres; i++) video_draw_hline(x, y + i, width, color);
+    return 0;
+}
+
+int (video_draw_hline)(uint16_t x, uint16_t y, uint16_t len, uint32_t color) {
+    for (int i = 0; i < len && i < hres; i++) video_draw_pixel(x + i, y, color);
+    return 0;
+}
+
+int (video_draw_pixel)(uint16_t x, uint16_t y, uint32_t color) {
+    if (x < 0 || y < 0 || x >= hres || y >= vres) {
+        printf("Invalid coordinates: (%d, %d)", x, y);
+        return 1;
+    }
+    
+    uint8_t* pixel = (uint8_t*) video_mem + (y * hres + x) * (bits_per_pixel / 8);
+    *pixel = color;
+
+    return 0;
+}

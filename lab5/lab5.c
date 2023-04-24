@@ -113,10 +113,9 @@ int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y, uint16_t width,
         return 1;
     }
 
-    //if (vg_draw_rectangle(x, y, width, height, color) != 0) {
-    //    printf("vbe_draw_rectangle() failed\n");
-    //    return 1;
-    //}
+    if (video_draw_rectangle(x, y, width, height, color) != 0) {
+        printf("video_draw_rectangle() failed\n");
+    }
 
     do {
         if ((r = driver_receive(ANY, &msg, &ipc_status)) != F_OK) continue;
