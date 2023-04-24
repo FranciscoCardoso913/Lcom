@@ -147,11 +147,56 @@ int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y, uint16_t width,
 }
 
 int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, uint8_t step) {
-    /* To be completed */
-    printf("%s(0x%03x, %u, 0x%08x, %d): under construction\n", __func__,
-        mode, no_rectangles, first, step);
+    int ipc_status;
+    message msg;
+    uint8_t irq_kbd, r;
 
-    return 1;
+    if (init_vars(mode) != 0) {
+        printf("init_vars() failed\n");
+        return 1;
+    }
+
+    if (video_mode() != 0) {
+        printf("video_mode() failed\n");
+        return 1;
+    }
+
+    if (keyboard_subscribe_int(&irq_kbd) != 0) {
+        printf("keyboard_subscribe_int() failed\n");
+        return 1;
+    }
+
+    if (video_draw_pattern(no_rectangles, first, step) != 0) {
+        printf("video_draw_pattern() failed\n");
+    }
+
+    do {
+        if ((r = driver_receive(ANY, &msg, &ipc_status)) != F_OK) continue;
+
+        if (is_ipc_notify(ipc_status)) {
+            switch (_ENDPOINT_P(msg.m_source)) {
+            case HARDWARE:
+                if (msg.m_notify.interrupts & irq_kbd) {
+                    keyboard_ih();
+                    if (bytes[size] == TWO_BYTES) size++;
+                    else size = 0;
+                }
+            default: break;
+            }
+        }
+    } while (bytes[size] != ESC_BREAK);
+
+    if (keyboard_unsubscribe_int() != 0) {
+        printf("keyboard_unsubscribe_int() failed\n");
+        return 1;
+    }
+
+    if (text_mode() != 0) {
+        printf("vbe_text_mode() failed\n");
+        return 1;
+    }
+
+    return 0;
 }
 
 int(video_test_xpm)(xpm_map_t xpm, uint16_t x, uint16_t y) {

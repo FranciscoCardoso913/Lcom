@@ -94,3 +94,18 @@ int (video_draw_pixel)(uint16_t x, uint16_t y, uint32_t color) {
 
     return 0;
 }
+
+int (video_draw_pattern)(uint8_t no_rectangles, uint32_t first, uint8_t step) {
+    uint16_t width = hres / no_rectangles;
+    uint16_t height = vres / no_rectangles;
+
+    uint32_t color = first;
+    for (int i = 0; i < no_rectangles; i++) {
+        for (int j = 0; j < no_rectangles; j++) {
+            video_draw_rectangle(j * width, i * height, width, height, color);
+            color += step;
+        }
+    }
+
+    return 0;
+}
