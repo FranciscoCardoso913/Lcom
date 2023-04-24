@@ -8,9 +8,12 @@
 
 // Any header files included below this line should have been created by you
 #include "i8254.h"
-#include "vbe.h"
+#include "i8042.h"
+#include "keyboard.h"
+#include "video.h"
 
 extern uint32_t counter_timer;
+extern uint8_t size, bytes[2];
 
 int main(int argc, char* argv[]) {
     // sets the language of LCF messages (can be either EN-US or PT-PT)
@@ -42,7 +45,7 @@ int(video_test_init)(uint16_t mode, uint8_t delay) {
     message msg;
     uint8_t irq_timer, r;
 
-    if (vbe_set_mode(mode) != 0) {
+    if (video_set_mode(mode) != 0) {
         printf("vbe_set_mode(%d) failed\n", mode);
         return 1;
     }
@@ -77,7 +80,7 @@ int(video_test_init)(uint16_t mode, uint8_t delay) {
         return 1;
     }
 
-    if (vbe_text_mode() != 0) {
+    if (text_mode() != 0) {
         printf("vbe_text_mode() failed\n");
         return 1;
     }
@@ -85,13 +88,53 @@ int(video_test_init)(uint16_t mode, uint8_t delay) {
     return 0;
 }
 
-int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
-    uint16_t width, uint16_t height, uint32_t color) {
-    /* To be completed */
-    printf("%s(0x%03X, %u, %u, %u, %u, 0x%08x): under construction\n",
-        __func__, mode, x, y, width, height, color);
+int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color) {
+    int ipc_status;
+    message msg;
+    uint8_t irq_kbd, r;
 
-    return 1;
+    if (video_mode() != 0) {
+        printf("vbe_video_mode() failed\n");
+        return 1;
+    }
+
+    if (keyboard_subscribe_int(&irq_kbd) != 0) {
+        printf("keyboard_subscribe_int() failed\n");
+        return 1;
+    }
+
+    if (vg_draw_rectangle(x, y, width, height, color) != 0) {
+        printf("vbe_draw_rectangle() failed\n");
+        return 1;
+    }
+
+    do {
+        if ((r = driver_receive(ANY, &msg, &ipc_status)) != F_OK) continue;
+
+        if (is_ipc_notify(ipc_status)) {
+            switch (_ENDPOINT_P(msg.m_source)) {
+            case HARDWARE:
+                if (msg.m_notify.interrupts & irq_kbd) {
+                    keyboard_ih();
+                    if (bytes[size] == TWO_BYTES) size++;
+                    else size = 0;
+                }
+            default: break;
+            }
+        }
+    } while (bytes[size] != ESC_BREAK);
+
+    if (keyboard_unsubscribe_int() != 0) {
+        printf("keyboard_unsubscribe_int() failed\n");
+        return 1;
+    }
+
+    if (text_mode() != 0) {
+        printf("vbe_text_mode() failed\n");
+        return 1;
+    }
+
+    return 0;
 }
 
 int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, uint8_t step) {

@@ -4,15 +4,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "vbe.h"
+#include "video.h"
 
-int (vbe_set_mode)(uint16_t mode) {
+static int hres, vres, bits_per_pixel;
+
+int (video_set_mode)(uint16_t mode) {
     reg86_t r;
     memset(&r, 0, sizeof(r));
 
-    r.intno = BIOS_VIDEO_SERVICES;
+    r.intno = VBE_VID_INT;
     r.ax = VBE_SET_MODE;
-    r.bx = mode | VBE_LINEAR_FRAME_BUFFER;
+    r.bx = mode | VBE_LINEAR_BUFFER;
 
     if (sys_int86(&r) != F_OK) {
         printf("sys_int86() failed\n");
@@ -22,13 +24,13 @@ int (vbe_set_mode)(uint16_t mode) {
     return 0;
 }
 
-int (vbe_text_mode)() {
+int (text_mode)() {
     reg86_t r;
     memset(&r, 0, sizeof(r));
 
-    r.intno = BIOS_VIDEO_SERVICES;
-    r.ah = SET_VIDEO_MODE_FUNCTION;
-    r.al = 0x03;
+    r.intno = VBE_VID_INT;
+    r.ah = BIOS_SET_MODE;
+    r.al = TEXT_MODE;
 
     if (sys_int86(&r) != F_OK) {
         printf("sys_int86() failed\n");
@@ -37,3 +39,8 @@ int (vbe_text_mode)() {
 
     return 0;
 }
+
+int (video_mode)() {
+    return video_set_mode(VBE_VIDEO_MODE);
+}
+
