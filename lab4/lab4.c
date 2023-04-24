@@ -162,9 +162,66 @@ int (mouse_test_async)(uint8_t idle_time) {
 }
 
 int (mouse_test_gesture)(uint8_t x_len, uint8_t tolerance) {
-    /* To be completed */
-    printf("%s: under construction\n", __func__);
-    return 1;
+  message msg;
+	int r, ipc_status;
+	uint8_t irqset, args[1];
+	struct packet pp;
+  bool mouseEvent = false;
+  struct mouse_ev *ev;
+
+	if (subscribe_mouse(&irqset)) {
+		return 1;
+	}
+
+  args[0] = 0xF4;
+	if (issue_mouse_command(args, 1)) {
+		printf("Error when enabling data reporting\n");
+		return 1;
+	}
+
+	while (1) {
+    if ( (r = driver_receive(ANY, &msg, &ipc_status) ) != 0) {
+      fprintf(stderr, "driver_receive failed with: %d\n", r);
+      continue;
+    }
+    if (is_ipc_notify(ipc_status)) {
+      switch(_ENDPOINT_P(msg.m_source)) {
+        case HARDWARE: 
+          if (msg.m_notify.interrupts & BIT(irqset)) {
+						mouse_ih();
+
+						if (idx == 3) {
+							pp = mouse_return_packet();
+							mouse_print_packet(&pp);
+              ev = mouse_detect_event(&pp);
+              mouseEvent = true;
+						}
+					}
+          break;
+        default:
+          break;
+      }
+    }
+    else {}
+    
+    if (mouseEvent) {
+      if (mouse_handle_event(ev, x_len, tolerance))
+        break;
+      mouseEvent = false;
+    }
+  }
+
+  args[0] = 0xF5;
+	if (issue_mouse_command(args, 1)) {
+		printf("Error when disabling data reporting\n");
+		return 1;
+	}
+
+	if (unsubscribe_mouse()) {
+		return 1;
+	}
+
+	return 0;
 }
 
 int (mouse_test_remote)(uint16_t period, uint8_t cnt) {

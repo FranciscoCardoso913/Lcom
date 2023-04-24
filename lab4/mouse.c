@@ -8,6 +8,7 @@ int32_t hookid_mouse = 0;
 struct packet pp;
 int idx = 0;
 int err;
+int x, y;
 
 
 int subscribe_mouse(uint8_t *bitno) {
@@ -152,4 +153,122 @@ struct packet mouse_return_packet() {
   pp.x_ov = pp.bytes[0] & MOUSE_X_OVFL;
   pp.y_ov = pp.bytes[0] & MOUSE_Y_OVFL;
   return pp;
+}
+
+mouse_state mouse_handle_init(struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance) {
+  x = y = 0;
+
+  switch(ev->type) {
+    case LB_PRESSED:
+      return FIRST_LINE;
+    default:
+      return INIT;
+  }
+}
+
+mouse_state mouse_handle_first_line(struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance) {
+  bool x_over_tolerance, y_over_tolerance;
+
+  switch(ev->type) {
+    case MOUSE_MOV:
+      x_over_tolerance = ev->delta_x < 0 && ev->delta_x > tolerance;
+      y_over_tolerance = ev->delta_y < 0 && ev->delta_y > tolerance;
+
+      if (x_over_tolerance || y_over_tolerance)
+        return INIT;
+      
+      x += ev->delta_x; y += ev->delta_y;
+
+      if (y / x < 1)
+        return INIT;
+      
+      return FIRST_LINE;
+
+    case LB_RELEASED:
+      if (x >= x_len) {
+        x = y = 0;
+        return VERTEX;
+      }
+      return INIT;
+
+    default:
+      return INIT;
+  }
+}
+
+mouse_state mouse_handle_vertex(struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance) {
+  switch(ev->type) {
+    case RB_PRESSED:
+      x = y = 0;
+      return SECOND_LINE;
+
+    case MOUSE_MOV:
+      if (abs(ev->delta_x) > tolerance || abs(ev->delta_y) > tolerance)
+        return INIT;
+      
+      x += ev->delta_x; y += ev->delta_y;
+
+      if (abs(x) > tolerance || abs(y) > tolerance)
+        return INIT;
+      
+      return VERTEX;
+
+    case LB_PRESSED:
+      x = y = 0;
+      return FIRST_LINE;
+
+    default:
+      return INIT;
+  }
+}
+
+mouse_state mouse_handle_second_line(struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance) {
+  bool x_over_tolerance, y_over_tolerance;
+
+  switch(ev->type) {
+    case MOUSE_MOV:
+      x_over_tolerance = ev->delta_x < 0 && ev->delta_x > tolerance;
+      y_over_tolerance = ev->delta_y < 0 && ev->delta_y > tolerance;
+
+      if (x_over_tolerance || y_over_tolerance)
+        return INIT;
+      
+      x += ev->delta_x; y += ev->delta_y;
+
+      if (y / x > -1)
+        return INIT;
+      
+      return SECOND_LINE;
+
+    case RB_RELEASED:
+      printf("x: %d\tx_len: %d", x, x_len);
+      if (x >= x_len) {
+        return END;
+      }
+      return INIT;
+
+    default:
+      return INIT;
+  }
+}
+
+bool mouse_handle_event(struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance) {
+  static mouse_state st = INIT;
+  static mouse_state (*st_funcs[]) (struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance) = {
+    mouse_handle_init,
+    mouse_handle_first_line,
+    mouse_handle_vertex,
+    mouse_handle_second_line,
+  };
+
+  printf("State: %d\n", st);
+  printf("Event: %d\n", ev->type);
+
+  st = st_funcs[st](ev, x_len, tolerance);
+
+  printf("Final State: %d\n", st);
+
+  if (st == END)
+    return true;
+  return false;
 }
