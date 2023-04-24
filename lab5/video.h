@@ -1,5 +1,5 @@
-#ifndef __VBE_H
-#define __VBE_H
+#ifndef __VIDEO_H
+#define __VIDEO_H
 
 #include <lcom/lcf.h>
 #include <lcom/lab5.h>
@@ -24,5 +24,6 @@
 int (video_set_mode)(uint16_t mode);
 int (video_mode)();
 int (text_mode)();
+int (init_vars)(uint16_t mode);
 
-#endif /* __VBE_H */
+#endif /* __VIDEO_H */

@@ -21,11 +21,11 @@ int main(int argc, char* argv[]) {
 
     // enables to log function invocations that are being "wrapped" by LCF
     // [comment this out if you don't want/need it]
-    lcf_trace_calls("/home/lcom/labs/lab5/trace.txt");
+    lcf_trace_calls("/home/lcom/labs/shared/lab5/trace.txt");
 
     // enables to save the output of printf function calls on a file
     // [comment this out if you don't want/need it]
-    lcf_log_output("/home/lcom/labs/lab5/output.txt");
+    lcf_log_output("/home/lcom/labs/shared/lab5/output.txt");
 
     // handles control over to LCF
     // [LCF handles command line arguments and invokes the right function]
@@ -45,8 +45,13 @@ int(video_test_init)(uint16_t mode, uint8_t delay) {
     message msg;
     uint8_t irq_timer, r;
 
+    if (init_vars(mode) != 0) {
+        printf("init_vars() failed\n");
+        return 1;
+    }
+
     if (video_set_mode(mode) != 0) {
-        printf("vbe_set_mode(%d) failed\n", mode);
+        printf("video_set_mode(%d) failed\n", mode);
         return 1;
     }
 
@@ -81,7 +86,7 @@ int(video_test_init)(uint16_t mode, uint8_t delay) {
     }
 
     if (text_mode() != 0) {
-        printf("vbe_text_mode() failed\n");
+        printf("text_mode() failed\n");
         return 1;
     }
 
@@ -93,8 +98,13 @@ int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y, uint16_t width,
     message msg;
     uint8_t irq_kbd, r;
 
+    if (init_vars(mode) != 0) {
+        printf("init_vars() failed\n");
+        return 1;
+    }
+
     if (video_mode() != 0) {
-        printf("vbe_video_mode() failed\n");
+        printf("video_mode() failed\n");
         return 1;
     }
 
@@ -103,10 +113,10 @@ int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y, uint16_t width,
         return 1;
     }
 
-    if (vg_draw_rectangle(x, y, width, height, color) != 0) {
-        printf("vbe_draw_rectangle() failed\n");
-        return 1;
-    }
+    //if (vg_draw_rectangle(x, y, width, height, color) != 0) {
+    //    printf("vbe_draw_rectangle() failed\n");
+    //    return 1;
+    //}
 
     do {
         if ((r = driver_receive(ANY, &msg, &ipc_status)) != F_OK) continue;
