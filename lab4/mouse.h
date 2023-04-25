@@ -37,4 +37,8 @@ mouse_state mouse_handle_vertex(struct mouse_ev *ev, uint8_t x_len, uint8_t tole
 
 mouse_state mouse_handle_second_line(struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance);
 
+struct mouse_ev* mouse_get_event(struct packet *pp);
+
+uint8_t count_buttons_pressed(struct packet *pp);
+
 #endif

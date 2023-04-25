@@ -155,6 +155,58 @@ struct packet mouse_return_packet() {
   return pp;
 }
 
+uint8_t count_buttons_pressed(struct packet *pp) {
+  int buttons = 0;
+
+  if (pp->lb)
+    buttons++;
+
+  if (pp->rb)
+    buttons++;
+  
+  if (pp->mb)
+    buttons++;
+  
+  return buttons;
+}
+
+struct mouse_ev* mouse_get_event(struct packet *pp) {
+  struct mouse_ev *event = malloc(sizeof *event);
+  event->delta_x = pp->delta_x;
+  event->delta_y = pp->delta_y;
+
+  static struct packet lastpp = {.rb = false, .lb = false, .mb = false};
+  uint8_t lastButtonsPressed, thisButtonsPressed;
+
+  lastButtonsPressed = count_buttons_pressed(&lastpp);
+  thisButtonsPressed = count_buttons_pressed(pp);
+
+  if (lastButtonsPressed == thisButtonsPressed) {
+    event->type = MOUSE_MOV;
+  }
+  else if (lastButtonsPressed < thisButtonsPressed && thisButtonsPressed == 1) {
+    if (pp->lb)
+      event->type = LB_PRESSED;
+    else if (pp->rb)
+      event->type = RB_PRESSED;
+    else
+      event->type = BUTTON_EV;
+  }
+  else if (lastButtonsPressed > thisButtonsPressed && thisButtonsPressed == 0) {
+    if (lastpp.lb)
+      event->type = LB_RELEASED;
+    else if (lastpp.rb)
+      event->type = RB_RELEASED;
+    else
+      event->type = BUTTON_EV;
+  }
+  else
+    event->type = BUTTON_EV;
+
+  lastpp = *pp;
+  return event;
+}
+
 mouse_state mouse_handle_init(struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance) {
   x = y = 0;
 
@@ -179,7 +231,7 @@ mouse_state mouse_handle_first_line(struct mouse_ev *ev, uint8_t x_len, uint8_t 
       
       x += ev->delta_x; y += ev->delta_y;
 
-      if (y / x < 1)
+      if (x != 0 && y / x < 1)
         return INIT;
       
       return FIRST_LINE;
@@ -235,13 +287,12 @@ mouse_state mouse_handle_second_line(struct mouse_ev *ev, uint8_t x_len, uint8_t
       
       x += ev->delta_x; y += ev->delta_y;
 
-      if (y / x > -1)
+      if (x != 0 && y / x > -1)
         return INIT;
       
       return SECOND_LINE;
 
     case RB_RELEASED:
-      printf("x: %d\tx_len: %d", x, x_len);
       if (x >= x_len) {
         return END;
       }
@@ -261,12 +312,7 @@ bool mouse_handle_event(struct mouse_ev *ev, uint8_t x_len, uint8_t tolerance) {
     mouse_handle_second_line,
   };
 
-  printf("State: %d\n", st);
-  printf("Event: %d\n", ev->type);
-
   st = st_funcs[st](ev, x_len, tolerance);
-
-  printf("Final State: %d\n", st);
 
   if (st == END)
     return true;

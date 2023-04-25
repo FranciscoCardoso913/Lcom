@@ -193,7 +193,7 @@ int (mouse_test_gesture)(uint8_t x_len, uint8_t tolerance) {
 						if (idx == 3) {
 							pp = mouse_return_packet();
 							mouse_print_packet(&pp);
-              ev = mouse_detect_event(&pp);
+              ev = mouse_get_event(&pp);
               mouseEvent = true;
 						}
 					}
