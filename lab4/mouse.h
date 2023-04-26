@@ -16,4 +16,10 @@ int mouse_read_status(uint8_t *status);
 
 int mouse_read_data(uint8_t *data);
 
+int mouse_command_handler(uint8_t cmd);
+
+int wait_ibf_clear();
+
+int wait_obf_full();
+
 #endif

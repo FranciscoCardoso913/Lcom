@@ -72,9 +72,6 @@ int mouse_write_cmd(int port, uint8_t cmd) {
       return 0;
     }
 
-    tickdelay(micros_to_ticks(DELAY_US));
-    timecounter++;
-
   } while (timecounter < 10);
 
   return 1;
@@ -119,4 +116,91 @@ int mouse_read_data(uint8_t *data) {
 
 void (timer_int_handler)() {
   cnt++;
+}
+
+
+int mouse_command_handler(uint8_t cmd) {
+
+  int count = 0;
+
+
+  while (count != 3 && status != ACK) {
+
+  
+    if (wait_ibf_clear()) {
+      printf("Error waiting for IBF to clear");
+      return 1;
+    }
+    if (mouse_write_cmd(STATUS_REG, WRITE_BYTE_MOUSE)) {
+      printf("Error writing 0xD4 to port 0x64");
+      return 1;
+    }
+
+
+    if (wait_ibf_clear()) {
+      printf("Error waiting for IBF to clear");
+      return 1;
+    }
+    if (mouse_write_cmd(IN_BUF_ARG, cmd)) {
+      printf("Error writing the command to port 0x60");
+      return 1;
+    }
+
+    if (wait_obf_full()) {
+      printf("Error waiting for OBF to be full");
+      return 1;
+    }
+    if (mouse_read_data(&status)) {
+      printf("Error reading the data");
+      return 1;
+    }
+
+    if (status == ACK) {
+      return 0;
+    }
+
+    count++;
+  
+  }
+
+  
+  return 1;
+
+}
+
+
+int wait_ibf_clear() {
+
+  int counter = 10; 
+  
+  while (counter) {
+
+    if (mouse_read_status(&status))
+      continue;
+
+    if (!(status & IBF)) //Se está vazio, então passa
+      return 0;
+    
+
+  }
+
+  return 1;
+}
+
+
+int wait_obf_full() {
+
+  int counter = 10; 
+
+  while(counter) {
+
+    if (read_mouse_status(&status)) 
+      continue;
+
+    if (status & OBF) //se tem algo para ler, então passa
+      return 0;
+    
+  }
+
+  return 1;
 }

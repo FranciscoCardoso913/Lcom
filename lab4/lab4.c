@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int hook_id = 12;
+int mouse_hook_id = 0;
 int timer_hook_id = 1;
 extern int counter;
 uint8_t scancode, status;
@@ -51,6 +51,12 @@ int (mouse_test_packet)(uint32_t cnt) {
     return 1;
   } 
 
+  if (mouse_command_handler(ENABLE_DATA_REP)) {
+    printf("Error enabling the stream! \n");
+    return 1;
+  }
+
+
   while (cnt > 0) {
     
     
@@ -59,19 +65,21 @@ int (mouse_test_packet)(uint32_t cnt) {
       continue;
     }
 
-    //Enables stream
-
     if (is_ipc_notify(ipc_status) && (_ENDPOINT_P(msg.m_source) == HARDWARE)) {
-      if (msg.m_notify.interrupts & BIT(bit_no)) {
-            
-
-
+      if (msg.m_notify.interrupts & BIT(irq_set)) {
+          
+        mouse_ih();
+        
       }
     }
 
   }
 
-  //disables stream
+
+  if (mouse_command_handler(DISABLE_DATA_REP)) {
+    printf("Error disabling the stream! \n");
+    return 1;
+  }
 
   if (mouse_unsubscribe_int()) {
     printf("Error unsubscribing the mouse interrupts! \n");
