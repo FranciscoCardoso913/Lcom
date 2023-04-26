@@ -95,12 +95,12 @@ int mouse_read_data(uint8_t *data) {
   if ((status & OBF) && (status & AUX)) {
 
     if (util_sys_inb(OUT_BUF, data)) {
-      printf("Error reading the buffer");
+      printf("Error reading the buffer! \n");
       return 1;
     }
 
     if (status & (TIMEOUT_ERR | PARITY_ERR)) {
-      printf("Error: Invalid data");
+      printf("Error: Invalid data! \n");
       return 2;
     }
 
@@ -128,30 +128,30 @@ int mouse_command_handler(uint8_t cmd) {
 
   
     if (wait_ibf_clear()) {
-      printf("Error waiting for IBF to clear");
+      printf("Error waiting for IBF to clear! \n");
       return 1;
     }
     if (mouse_write_cmd(STATUS_REG, WRITE_BYTE_MOUSE)) {
-      printf("Error writing 0xD4 to port 0x64");
+      printf("Error writing 0xD4 to port 0x64! \n");
       return 1;
     }
 
 
     if (wait_ibf_clear()) {
-      printf("Error waiting for IBF to clear");
+      printf("Error waiting for IBF to clear! \n");
       return 1;
     }
     if (mouse_write_cmd(IN_BUF_ARG, cmd)) {
-      printf("Error writing the command to port 0x60");
+      printf("Error writing the command to port 0x60! \n");
       return 1;
     }
 
     if (wait_obf_full()) {
-      printf("Error waiting for OBF to be full");
+      printf("Error waiting for OBF to be full! \n");
       return 1;
     }
     if (mouse_read_data(&status)) {
-      printf("Error reading the data");
+      printf("Error reading the data! \n");
       return 1;
     }
 
@@ -163,7 +163,7 @@ int mouse_command_handler(uint8_t cmd) {
   
   }
 
-  
+  printf("Error: Couldn't write the command after 3 tries! \n");
   return 1;
 
 }
@@ -194,7 +194,7 @@ int wait_obf_full() {
 
   while(counter) {
 
-    if (read_mouse_status(&status)) 
+    if (mouse_read_status(&status)) 
       continue;
 
     if (status & OBF) //se tem algo para ler, então passa

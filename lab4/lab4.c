@@ -43,8 +43,8 @@ int (mouse_test_packet)(uint32_t cnt) {
     
   uint8_t irq_set;
   message msg;
-  int ipc_status, r;
-
+  int ipc_status, r, idx = 0;
+  struct packet pp;
 
   if (mouse_subscribe_int(&irq_set)) {
     printf("Error subscribing the mouse interrupts! \n");
@@ -70,6 +70,18 @@ int (mouse_test_packet)(uint32_t cnt) {
           
         mouse_ih();
         
+        if (idx == 0 && (scancode & BIT(3)) == 0) {
+          continue;
+        }
+
+        pp.bytes[idx++] = scancode;
+
+        if (idx == 3) {
+          idx = 0;
+          mouse_print_packet(&pp);
+          cnt--;
+        }        
+
       }
     }
 
@@ -96,7 +108,7 @@ int (mouse_test_async)(uint8_t idle_time) {
     return 1;
 }
 
-int (mouse_test_gesture)() {
+int (mouse_test_gesture)(uint8_t x_len, uint8_t tolerance) {
     /* To be completed */
     printf("%s: under construction\n", __func__);
     return 1;
@@ -111,7 +123,7 @@ int (mouse_test_remote)(uint16_t period, uint8_t cnt) {
 void (mouse_ih)(){
 
   if (mouse_read_data(&scancode)) {
-    printf("Error reading the data");
+    printf("Error reading the data from mouse! \n");
   }
 
 }

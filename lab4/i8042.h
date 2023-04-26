@@ -42,15 +42,6 @@
 #define INT2 BIT(1)
 #define INT BIT(0)
 
-/* BYTE 1 Mouse */
-#define Y_OVF BIT(7)
-#define X_OVF BIT(6)
-#define Y_MSB BIT(5)
-#define X_MSB BIT(4)
-#define MB BIT(2)
-#define RB BIT(1)
-#define LB BIT(0)
-
 /* MOUSE COMMANDS */
 #define RESET 0xFF
 #define RESEND 0xFE
@@ -81,7 +72,5 @@
 /* MOUSE STATUS REQUEST */
 #define MOUSE_ID 0x00
 #define MOUSE_TYPE 0x03
-
-
 
 #endif
