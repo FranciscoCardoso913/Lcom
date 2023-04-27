@@ -24,4 +24,6 @@ int wait_obf_full();
 
 void build_packet(struct packet *pp);
 
+void timer_ih();
+
 #endif

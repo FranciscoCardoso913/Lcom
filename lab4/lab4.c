@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-extern int counter;
+extern int timer_counter;
 uint8_t byte, status;
 
 int (mouse_test_packet)(uint32_t cnt) {
@@ -81,7 +81,7 @@ int (mouse_test_packet)(uint32_t cnt) {
           build_packet(&pp);
           mouse_print_packet(&pp);
           cnt--;
-        }        
+        }    
 
       }
     }
@@ -104,9 +104,88 @@ int (mouse_test_packet)(uint32_t cnt) {
 }
 
 int (mouse_test_async)(uint8_t idle_time) {
-    /* To be completed */
-    printf("%s(%u): under construction\n", __func__, idle_time);
+    
+
+  uint8_t irq_set_mouse, irq_set_timer;
+  message msg;
+  int ipc_status, r, idx = 0;
+  struct packet pp;
+  int freq = sys_hz();
+
+  if (mouse_subscribe_int(&irq_set_mouse))  {
+    printf("Error subscribing the mouse interrupts! \n");
     return 1;
+  }
+
+  if (timer_subscribe_int(&irq_set_timer)) {
+    printf("Error subscribing the timer interrupts! \n");
+    return 1;
+  }
+
+  if(mouse_command_handler(ENABLE_DATA_REP)) {
+    printf("Error enabling the stream! \n");
+    return 1;
+  }
+
+  util_sys_inb(0x60, &byte);
+  byte = 0;
+
+  while(timer_counter < idle_time*freq) {
+
+    if ( ( r = driver_receive(ANY, &msg, &ipc_status) ) != 0 ) {
+      printf("driver_receive failed with: %d", r);
+      continue;
+    }
+
+    if (is_ipc_notify(ipc_status) && (_ENDPOINT_P(msg.m_source) == HARDWARE)) {
+      
+      if (msg.m_notify.interrupts & irq_set_timer) {
+        
+        timer_ih();
+
+      }
+
+      if (msg.m_notify.interrupts & irq_set_mouse) {
+
+        timer_counter = 0;
+
+        mouse_ih();
+        
+        if (idx == 0 && (byte & BIT(3)) == 0) {
+          continue;
+        }
+
+        pp.bytes[idx++] = byte;
+
+        if (idx == 3) {
+          idx = 0;
+          build_packet(&pp);
+          mouse_print_packet(&pp);
+  
+        }    
+
+      }
+
+    }
+  }
+
+  if(mouse_command_handler(DISABLE_DATA_REP)) {
+    printf("Error disabling the stream! \n");
+    return 1;
+  }
+
+  if(mouse_unsubscribe_int()) {
+    printf("Error unsubscribing the mouse interrupts! \n");
+    return 1;
+  }
+
+  if (timer_unsubscribe_int()) {
+    printf("Error unsubscribing the timer interrupts! \n");
+    return 1;
+  }
+
+  return 0;
+
 }
 
 int (mouse_test_gesture)(uint8_t x_len, uint8_t tolerance) {

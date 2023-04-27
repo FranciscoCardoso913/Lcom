@@ -7,9 +7,8 @@
 
 int timer_hook_id = 0;
 int mouse_hook_id = 1;
-extern uint8_t scancode;
 extern uint8_t status;
-int cnt = 0;
+int timer_counter = 0;
 
 int mouse_subscribe_int(uint8_t *bit_no) {
   *bit_no = BIT(mouse_hook_id); 
@@ -93,11 +92,6 @@ int mouse_read_data(uint8_t *data) {
 
   if (mouse_read_status(&status)) return 1;
 
-    if(wait_obf_full()) {
-      printf("Error waiting for OBF to be full! \n");
-      return 1;
-    }
-
     if (util_sys_inb(OUT_BUF, data)) {
       printf("Error reading the buffer! \n");
       return 1;
@@ -112,18 +106,18 @@ int mouse_read_data(uint8_t *data) {
   }
 
 
+void timer_ih() {
 
-void (timer_int_handler)() {
-  cnt++;
+  timer_counter++;
+
 }
-
 
 int mouse_command_handler(uint8_t cmd) {
 
   int count = 0;
   uint8_t asw = 0;
 
-  while (count != 3 && asw != ACK) {
+  while (count != 3) {
 
   
     if (wait_ibf_clear()) {
@@ -145,6 +139,11 @@ int mouse_command_handler(uint8_t cmd) {
       return 1;
     }
 
+    if(wait_obf_full()) {
+      printf("Error waiting for OBF to fill! \n");
+      return 1;
+    }
+
     if (mouse_read_data(&asw)) {
       printf("Error reading the data! \n");
       return 1;
@@ -153,7 +152,6 @@ int mouse_command_handler(uint8_t cmd) {
     if (asw == ACK) {
       return 0;
     }
-
     
     count++;
   
@@ -169,7 +167,7 @@ int wait_ibf_clear() {
 
   int counter = 10; 
   
-  while (counter) {
+  while (counter--) {
 
     if (mouse_read_status(&status))
       continue;
@@ -188,7 +186,7 @@ int wait_obf_full() {
 
   int counter = 10; 
 
-  while(counter) {
+  while(counter--) {
 
     if (mouse_read_status(&status)) 
       continue;
