@@ -7,6 +7,7 @@
 extern int mouse_hook_id;
 extern int counter;
 struct packet pp;
+static enum mouse_state state = INIT;
 bool wait_ibf_empty() {
   int tries = 10;
   uint8_t status;
@@ -100,6 +101,19 @@ struct packet (mouse_return_packet)() {
   pp.y_ov = pp.bytes[0] & BIT(7);
   return pp;
 }
+bool(handle_mouse_event)(struct mouse_ev *event, uint8_t x_len, uint8_t tolerance) {
+  static void (*state_func[])(struct mouse_ev * event, uint8_t x_len, uint8_t tolerance) = {
+    mouse_handle_init,
+    mouse_handle_first_line,
+    mouse_handle_vertex,
+    mouse_handle_second_line,
+  };
+}
+
+void (mouse_handle_init)(struct mouse_ev *event, uint8_t x_len, uint8_t tolerance){
+  if(event->type=LB_PRESSED)
+}
+
 
 
    

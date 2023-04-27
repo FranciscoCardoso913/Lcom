@@ -4,6 +4,7 @@
         "timer.h": "c",
         "lab4.h": "c",
         "i8042.h": "c",
-        "lcf.h": "c"
+        "lcf.h": "c",
+        "lab5.h": "c"
     }
 }

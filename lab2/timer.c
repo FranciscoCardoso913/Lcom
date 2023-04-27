@@ -5,7 +5,7 @@
 
 
 #include "i8254.h"
-extern int counter;
+extern int timer_counter;
 extern int timer_hook_id;
 
 
@@ -78,7 +78,7 @@ int (timer_unsubscribe_int)() {
 }
 
 void (timer_int_handler)() {
-  counter++;
+  timer_counter++;
 }
 
 int (timer_get_conf)(uint8_t timer, uint8_t *st) {
