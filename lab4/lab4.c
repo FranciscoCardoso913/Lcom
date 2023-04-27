@@ -34,10 +34,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int mouse_hook_id = 0;
-int timer_hook_id = 1;
 extern int counter;
-uint8_t scancode, status;
+uint8_t byte, status;
 
 int (mouse_test_packet)(uint32_t cnt) {
     
@@ -45,6 +43,8 @@ int (mouse_test_packet)(uint32_t cnt) {
   message msg;
   int ipc_status, r, idx = 0;
   struct packet pp;
+
+
 
   if (mouse_subscribe_int(&irq_set)) {
     printf("Error subscribing the mouse interrupts! \n");
@@ -66,18 +66,19 @@ int (mouse_test_packet)(uint32_t cnt) {
     }
 
     if (is_ipc_notify(ipc_status) && (_ENDPOINT_P(msg.m_source) == HARDWARE)) {
-      if (msg.m_notify.interrupts & BIT(irq_set)) {
-          
+      if (msg.m_notify.interrupts & irq_set) {
+        
         mouse_ih();
         
-        if (idx == 0 && (scancode & BIT(3)) == 0) {
+        if (idx == 0 && (byte & BIT(3)) == 0) {
           continue;
         }
 
-        pp.bytes[idx++] = scancode;
+        pp.bytes[idx++] = byte;
 
         if (idx == 3) {
           idx = 0;
+          build_packet(&pp);
           mouse_print_packet(&pp);
           cnt--;
         }        
@@ -122,7 +123,7 @@ int (mouse_test_remote)(uint16_t period, uint8_t cnt) {
 
 void (mouse_ih)(){
 
-  if (mouse_read_data(&scancode)) {
+  if (mouse_read_data(&byte)) {
     printf("Error reading the data from mouse! \n");
   }
 

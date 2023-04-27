@@ -22,4 +22,6 @@ int wait_ibf_clear();
 
 int wait_obf_full();
 
+void build_packet(struct packet *pp);
+
 #endif

@@ -73,4 +73,13 @@
 #define MOUSE_ID 0x00
 #define MOUSE_TYPE 0x03
 
+/* MOUSE PACKET BYTE */
+#define LB BIT(0)
+#define RB BIT(1)
+#define MB BIT(2)
+#define X_MSB BIT(4)
+#define Y_MSB BIT(5)
+#define X_OV BIT(6)
+#define Y_OV BIT(7)
+
 #endif

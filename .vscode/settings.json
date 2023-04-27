@@ -11,6 +11,7 @@
         "kbd.h": "c",
         "i8254.h": "c",
         "mouse.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "stdlib.h": "c"
     }
 }

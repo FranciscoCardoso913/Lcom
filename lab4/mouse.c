@@ -4,14 +4,15 @@
 #include "i8042.h"
 #include "../lab2/i8254.h"
 
-extern int timer_hook_id;
-extern int mouse_hook_id;
+
+int timer_hook_id = 0;
+int mouse_hook_id = 1;
 extern uint8_t scancode;
 extern uint8_t status;
 int cnt = 0;
 
 int mouse_subscribe_int(uint8_t *bit_no) {
-  *bit_no = mouse_hook_id; 
+  *bit_no = BIT(mouse_hook_id); 
   if (sys_irqsetpolicy( MOUSE_IRQ, IRQ_REENABLE | IRQ_EXCLUSIVE, &mouse_hook_id)) {
     printf("Error subscribing the mouse interrupts! \n");
     return 1;
@@ -32,7 +33,7 @@ int mouse_unsubscribe_int() {
 
 int (timer_subscribe_int)(uint8_t *bit_no) {
 
-  *bit_no = timer_hook_id;
+  *bit_no = BIT(timer_hook_id);
 
   if (sys_irqsetpolicy(TIMER0_IRQ, IRQ_REENABLE, &timer_hook_id)) {
     printf("Error setting the policy! \n");
@@ -92,7 +93,10 @@ int mouse_read_data(uint8_t *data) {
 
   if (mouse_read_status(&status)) return 1;
 
-  if ((status & OBF) && (status & AUX)) {
+    if(wait_obf_full()) {
+      printf("Error waiting for OBF to be full! \n");
+      return 1;
+    }
 
     if (util_sys_inb(OUT_BUF, data)) {
       printf("Error reading the buffer! \n");
@@ -101,18 +105,13 @@ int mouse_read_data(uint8_t *data) {
 
     if (status & (TIMEOUT_ERR | PARITY_ERR)) {
       printf("Error: Invalid data! \n");
-      return 2;
+      return 1;
     }
 
     return 0;
   }
 
 
-  tickdelay(micros_to_ticks(DELAY_US));
-
-  return 2;
-
-}
 
 void (timer_int_handler)() {
   cnt++;
@@ -122,9 +121,9 @@ void (timer_int_handler)() {
 int mouse_command_handler(uint8_t cmd) {
 
   int count = 0;
+  uint8_t asw = 0;
 
-
-  while (count != 3 && status != ACK) {
+  while (count != 3 && asw != ACK) {
 
   
     if (wait_ibf_clear()) {
@@ -146,19 +145,16 @@ int mouse_command_handler(uint8_t cmd) {
       return 1;
     }
 
-    if (wait_obf_full()) {
-      printf("Error waiting for OBF to be full! \n");
-      return 1;
-    }
-    if (mouse_read_data(&status)) {
+    if (mouse_read_data(&asw)) {
       printf("Error reading the data! \n");
       return 1;
     }
 
-    if (status == ACK) {
+    if (asw == ACK) {
       return 0;
     }
 
+    
     count++;
   
   }
@@ -202,5 +198,19 @@ int wait_obf_full() {
     
   }
 
+  printf("Error: Couldn't read the data after 10 tries! \n");
   return 1;
+}
+
+
+void build_packet(struct packet *pp) {
+
+  pp->lb = pp->bytes[0] & LB;
+  pp->rb = pp->bytes[0] & RB;
+  pp->mb = pp->bytes[0] & MB;
+  pp->delta_x = pp->bytes[0] & X_MSB ? pp->bytes[1] | 0xff00 : pp->bytes[1];
+  pp->delta_y = pp->bytes[0] & Y_MSB ? pp->bytes[2] | 0xff00 : pp->bytes[2];
+  pp->x_ov = pp->bytes[0] & X_OV ;
+  pp->y_ov = pp->bytes[0] & Y_OV;
+
 }
