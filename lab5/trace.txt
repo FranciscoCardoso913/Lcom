@@ -1,0 +1,14 @@
+@lcflib.a:2019, lcf_start
+  video_test_init(mode, delay)
+> video_test_init(0x105, 8)
+  @video.c:17, video_graphic_init
+    sys_int86(&r86)
+  > sys_int86(addr: 0xeffff638 [AX: 4f02, BX: 0000, CX: 0000, DX: 0000, ES: 0000, DI: 0000])
+  < sys_int86(addr: 0xeffff638 [AX: 004f, BX: 0000, CX: 0000, DX: 0000, ES: 0000, DI: 0000]) -> (ret: 0)
+  @lab5.c:43, video_test_init
+    sleep(delay)
+  > sleep(8)
+  @lab5.c:45, video_test_init
+    vg_exit()
+  < vg_exit() -> (ret: 0)
+< video_test_init(0x105, 8) -> (ret: 0)

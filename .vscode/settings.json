@@ -12,6 +12,22 @@
         "i8254.h": "c",
         "mouse.h": "c",
         "stdio.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "lab5.h": "c",
+        "int86.h": "c",
+        "endpoint.h": "c",
+        "driver.h": "c",
+        "const.h": "c",
+        "syslib.h": "c",
+        "types.h": "c",
+        "liblm.h": "c",
+        "timespec.h": "c",
+        "time.h": "c",
+        "mman.h": "c",
+        "vm.h": "c",
+        "type.h": "c",
+        "sysutil.h": "c",
+        "sef.h": "c",
+        "unistd.h": "c"
     }
 }
