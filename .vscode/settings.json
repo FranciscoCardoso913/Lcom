@@ -28,6 +28,7 @@
         "type.h": "c",
         "sysutil.h": "c",
         "sef.h": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "keyboard.h": "c"
     }
 }
