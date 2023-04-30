@@ -191,3 +191,17 @@ int draw_pattern(uint8_t no_rectangles, uint32_t first, uint8_t step) {
 
   return 0;
 }
+
+int vg_draw_xpm(xpm_map_t xpm, uint16_t x, uint16_t y) {
+  xpm_image_t img;
+  uint8_t *bitmap = xpm_load(xpm, XPM_INDEXED, &img);
+
+  for (uint16_t line = 0; line < img.height; line++) {
+    for (uint16_t col = 0; col < img.width; col++) {
+      if (vg_draw_pixel(x + col, y + line, bitmap[line * img.width + col]))
+        return 1;
+    }
+  }
+
+  return 0;
+}

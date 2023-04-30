@@ -3,6 +3,7 @@
 
 #include <lcom/lcf.h>
 
+#define INDEXED_MODE 0x105
 #define AH_REG 0x4F
 #define AL_SET_VBE_MODE 0x02
 #define AL_RETURN_VBE_MODE 0x01

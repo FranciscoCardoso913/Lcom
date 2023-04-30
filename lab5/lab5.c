@@ -10,6 +10,7 @@
 #include "video.h"
 #include "i8042.h"
 #include "kbc.h"
+#include "video_macros.h"
 
 int main(int argc, char *argv[]) {
   // sets the language of LCF messages (can be either EN-US or PT-PT)
@@ -169,10 +170,61 @@ int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, ui
 }
 
 int(video_test_xpm)(xpm_map_t xpm, uint16_t x, uint16_t y) {
-  /* To be completed */
-  printf("%s(%8p, %u, %u): under construction\n", __func__, xpm, x, y);
+  int r, ipc_status;
+  uint8_t irqset, idx = 0;
+  message msg;
+  bool ignore = false;
+  uint8_t scanCodes[2];
 
-  return 1;
+  if (vg_init(INDEXED_MODE) == NULL)
+    return 1;
+
+  if (vg_draw_xpm(xpm, x, y))
+    return 1;
+
+  if (kbd_subscribe_int(&irqset)) return 1;
+
+  while (scanCode != ESC_CODE) {
+    if ( (r = driver_receive(ANY, &msg, &ipc_status) ) != 0) {
+      fprintf(stderr, "driver_receive failed with: %d\n", r);
+      continue;
+    }
+    if (is_ipc_notify(ipc_status)) {
+      switch(_ENDPOINT_P(msg.m_source)) {
+        case HARDWARE: 
+          if (msg.m_notify.interrupts & BIT(irqset)) {
+            kbc_ih();
+
+            if (err == 1)
+              continue;
+            else if (err == 2)
+              ignore = true;
+            
+            if (scanCode == TWO_BYTE_CODE) {
+              scanCodes[idx++] = scanCode;
+            }
+            else {
+              scanCodes[idx] = scanCode;
+              if (!ignore) {
+                ignore = false;
+              }
+              idx = 0;
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    else {}
+  }
+
+  if (kbd_unsubscribe_int()) return 1;
+
+  if (vg_exit())
+    return 1;
+
+  return 0;
 }
 
 int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
