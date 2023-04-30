@@ -5,8 +5,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include<../lab2/timer.c>
 #include <video.h>
+#include <keyboard.h>
+#include<../lab2/timer.c>
 
 // Any header files included below this line should have been created by you
 
@@ -33,87 +34,304 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-int timer_hook_id=0;
-int timer_counter;
-int sys_inb_calls;
+
 int(video_test_init)(uint16_t mode, uint8_t delay) {
-    uint8_t timer_irq_set= timer_hook_id;
-    message msg;
-    int ipc_status;
-    uint8_t r;
-    timer_counter=0;
-    if(init_vars(mode)){
-        printf("bah");
-        return 1;
-    }
-    if(timer_subscribe_int(&timer_irq_set)){
-        printf("Error while sub timer\n");
-        return 1;
-    }
+
     if(video_set_mode(mode)){
         printf("Error while setting mode");
         return 1;
     }
-    while( timer_counter<(int)(sys_hz()*delay) ) { 
-        if( (r = driver_receive(ANY, &msg, &ipc_status)) != 0 ) {
-            printf("driver_receive failed with: %d", r);
-            continue;
-        }
-        if (is_ipc_notify(ipc_status)) { 
-            switch (_ENDPOINT_P(msg.m_source)) {
-                case HARDWARE: 
-                    if (msg.m_notify.interrupts & BIT(timer_irq_set)) { 
-                        timer_int_handler();
-                    }
-                break;
-                default:
-                break; 
-            }
-        } else {}
-        }
-        if(timer_unsubscribe_int()){
-            printf("Error while unsub timer");
-            return 1;
-        }
-        if(set_text_mode()){
+    sleep(delay);
+        if(vg_exit()){
             printf("Error while setting visual mode to text");
             return 1;
         }
 
   return 0;
 }
+uint8_t keyboard_hook_id=1;
+uint8_t scan_code;
+int err;
+uint8_t status;
+int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,uint16_t width, uint16_t height, uint32_t color) {
+  scan_code=0;
+  uint8_t array[2];
+  int index=0;
+  uint8_t keyboard_irq_set=keyboard_hook_id;
+  int r,ipc_status;
 
-int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
-                          uint16_t width, uint16_t height, uint32_t color) {
-  /* To be completed */
-  printf("%s(0x%03X, %u, %u, %u, %u, 0x%08x): under construction\n",
-         __func__, mode, x, y, width, height, color);
+  message msg;
+  if(init_vars(mode)) return 1;
+   if(video_set_mode(mode)){
+        printf("Error while setting mode");
+        return 1;
+    }
+  if(keyboard_subscribe_int(&keyboard_irq_set)) return 1;
+   if(video_draw_rectangle(x,y,width,height,color)) return 1;
+   while( scan_code!=ESC_CODE ) { 
+         if( (r = driver_receive(ANY, &msg, &ipc_status)) != 0 ) {
+                      printf("driver_receive failed with: %d", r);
+                      continue;
+                  }
+        if (is_ipc_notify(ipc_status)) { /* received notification *11:*/
+          switch (_ENDPOINT_P(msg.m_source)) {
+            case HARDWARE: /* hardware interrupt notification */
+              
+              if (msg.m_notify.interrupts & BIT(keyboard_irq_set)) { 
+                  
+                  if(util_sys_inb(STAT_REG,&status)){
+                      printf("Error while making the request to read");
+                      return 1;
+                  };
+                  kbc_ih();
+                  if(err==1) {
+                      continue;
+                  }
+                 
+                  if(index==0){
+                      array[index]=scan_code;
+                      if(scan_code==0xE0) index=1;
+                  }
+                  else{
+                      array[index]=scan_code;
+                      index=0;
+                  }
+            }
+            break;
+            default:
+            break; /* no other notifications expected: do nothi19: */
+          }
+    } else {}
+      
+     
+    
+    }
+    if(keyboard_unsubscribe_int()){
+        printf("Error while subscribing.");
+        return 1;
+    } 
+ 
+  if(vg_exit()){
+      printf("Error while setting visual mode to text");
+      return 1;
+  }
 
-  return 1;
+
+
+  return 0;
 }
 
 int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, uint8_t step) {
   /* To be completed */
-  printf("%s(0x%03x, %u, 0x%08x, %d): under construction\n", __func__,
-         mode, no_rectangles, first, step);
+   scan_code=0;
+  uint8_t array[2];
+  int index=0;
+  uint8_t keyboard_irq_set=keyboard_hook_id;
+  int r,ipc_status;
 
-  return 1;
+  message msg;
+  if(init_vars(mode)) return 1;
+   if(video_set_mode(mode)){
+        printf("Error while setting mode");
+        return 1;
+    }
+  if(keyboard_subscribe_int(&keyboard_irq_set)) return 1;
+   if(video_draw_pattern(no_rectangles,first,step)) return 1;
+   while( scan_code!=ESC_CODE ) { 
+         if( (r = driver_receive(ANY, &msg, &ipc_status)) != 0 ) {
+                      printf("driver_receive failed with: %d", r);
+                      continue;
+                  }
+        if (is_ipc_notify(ipc_status)) { /* received notification *11:*/
+          switch (_ENDPOINT_P(msg.m_source)) {
+            case HARDWARE: /* hardware interrupt notification */
+              
+              if (msg.m_notify.interrupts & BIT(keyboard_irq_set)) { 
+                  
+                  if(util_sys_inb(STAT_REG,&status)){
+                      printf("Error while making the request to read");
+                      return 1;
+                  };
+                  kbc_ih();
+                  if(err==1) {
+                      continue;
+                  }
+                 
+                  if(index==0){
+                      array[index]=scan_code;
+                      if(scan_code==0xE0) index=1;
+                  }
+                  else{
+                      array[index]=scan_code;
+                      index=0;
+                  }
+            }
+            break;
+            default:
+            break; /* no other notifications expected: do nothi19: */
+          }
+    } else {}
+      
+     
+    
+    }
+    if(keyboard_unsubscribe_int()){
+        printf("Error while subscribing.");
+        return 1;
+    } 
+ 
+  if(vg_exit()){
+      printf("Error while setting visual mode to text");
+      return 1;
+  }
+
+
+
+  return 0;
 }
 
 int(video_test_xpm)(xpm_map_t xpm, uint16_t x, uint16_t y) {
-  /* To be completed */
-  printf("%s(%8p, %u, %u): under construction\n", __func__, xpm, x, y);
+     scan_code=0;
+  uint8_t array[2];
+  int index=0;
+  uint8_t keyboard_irq_set=keyboard_hook_id;
+  int r,ipc_status;
+  message msg;
+  if(init_vars(0x105)) return 1;
+  if(video_set_mode(0x105))return 1;
+   if(keyboard_subscribe_int(&keyboard_irq_set)) return 1;
 
-  return 1;
+   if( draw_xpm(xpm, x,y)) return 1;
+   while( scan_code!=ESC_CODE ) { 
+         if( (r = driver_receive(ANY, &msg, &ipc_status)) != 0 ) {
+                      printf("driver_receive failed with: %d", r);
+                      continue;
+                  }
+        if (is_ipc_notify(ipc_status)) { /* received notification *11:*/
+          switch (_ENDPOINT_P(msg.m_source)) {
+            case HARDWARE: /* hardware interrupt notification */
+              
+              if (msg.m_notify.interrupts & BIT(keyboard_irq_set)) { 
+                  
+                  if(util_sys_inb(STAT_REG,&status)){
+                      printf("Error while making the request to read");
+                      return 1;
+                  };
+                  kbc_ih();
+                  if(err==1) {
+                      continue;
+                  }
+                 
+                  if(index==0){
+                      array[index]=scan_code;
+                      if(scan_code==0xE0) index=1;
+                  }
+                  else{
+                      array[index]=scan_code;
+                      index=0;
+                  }
+            }
+            break;
+            default:
+            break; /* no other notifications expected: do nothi19: */
+          }
+    } else {}
+      
+     
+    
+    }
+    if(keyboard_unsubscribe_int()){
+        printf("Error while subscribing.");
+        return 1;
+    } 
+    if(vg_exit()) return 1;
+ 
+ return 0;
 }
+int timer_hook_id=0;
+int timer_counter=0;
+int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf, int16_t speed, uint8_t fr_rate) {
+  uint8_t keyboard_irq_set=keyboard_hook_id;
+  uint8_t timer_irq_set= timer_hook_id;
+  int r,ipc_status,index=0;
+  uint8_t array[2];
+  message msg;
+  scan_code=0;
+  int x=xi,y=yi;
+  int stopedFrames;
+  int isVertical=0;
+  if(yi==yf) isVertical=0;
+  else if(xi==xf) isVertical=1;
+  else return 1;
+  if(init_vars(0x105))return 1;
+  if(video_set_mode(0x105)) return 1;
+  if(keyboard_subscribe_int(&keyboard_irq_set)) return 1;
+  if(timer_subscribe_int(&timer_irq_set)) return 1;
+  if(timer_set_frequency(0,fr_rate)) return 1;
+  if(draw_xpm(xpm,x,y)) return 1;
+   while( scan_code!=ESC_CODE ) { 
+         if( (r = driver_receive(ANY, &msg, &ipc_status)) != 0 ) {
+                      printf("driver_receive failed with: %d", r);
+                      continue;
+                  }
+        if (is_ipc_notify(ipc_status)) { /* received notification *11:*/
+          switch (_ENDPOINT_P(msg.m_source)) {
+            case HARDWARE: /* hardware interrupt notification */
+              
+              if (msg.m_notify.interrupts & BIT(keyboard_irq_set)) { 
+                  if(util_sys_inb(STAT_REG,&status)){
+                      printf("Error while making the request to read");
+                      return 1;
+                  };
+                  kbc_ih();
+                  if(err==1) {
+                      continue;
+                  }
+                 
+                  if(index==0){
+                      array[index]=scan_code;
+                      if(scan_code==0xE0) index=1;
+                  }
+                  else{
+                      array[index]=scan_code;
+                      index=0;
+                  }
+            }
+             if (msg.m_notify.interrupts & BIT(timer_irq_set)) { 
+               
+                if(x>=xf && y >=yf)continue;
+               clear_screen(x,y);
+                if(speed<0){
 
-int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
-                     int16_t speed, uint8_t fr_rate) {
-  /* To be completed */
-  printf("%s(%8p, %u, %u, %u, %u, %d, %u): under construction\n",
-         __func__, xpm, xi, yi, xf, yf, speed, fr_rate);
+                    if(stopedFrames==-speed){
+                      if(isVertical)y++;
+                      else x++;
+                      if( draw_xpm(xpm, x,y)) return 1;
+                      stopedFrames=0;
+                    }
+                    else stopedFrames++;
+                }
+                else{
+                  if(isVertical)y+=speed;
+                  else x+=speed;
+                  if(y>yf) y=yf;
+                  if(x>xf) x=xf;
+                  if( draw_xpm(xpm, x,y)) return 1;
+                }
 
-  return 1;
+             }
+            break;
+            default:
+            break; /* no other notifications expected: do nothi19: */
+          }
+    } else {}
+    }
+
+  if(timer_unsubscribe_int()) return 1;
+  if(keyboard_unsubscribe_int()) return 1;
+  if(vg_exit()) return 1;
+
+  return 0;
 }
 
 int(video_test_controller)() {
