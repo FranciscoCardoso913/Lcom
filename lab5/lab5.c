@@ -8,6 +8,8 @@
 
 // Any header files included below this line should have been created by you
 #include "video.h"
+#include "i8042.h"
+#include "kbc.h"
 
 int main(int argc, char *argv[]) {
   // sets the language of LCF messages (can be either EN-US or PT-PT)
@@ -39,18 +41,75 @@ int(video_test_init)(uint16_t mode, uint8_t delay) {
 
   sleep(delay);
 
-  vg_exit();
+  if (vg_exit())
+    return 1;
 
   return 0;
 }
 
-int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
-                          uint16_t width, uint16_t height, uint32_t color) {
-  /* To be completed */
-  printf("%s(0x%03X, %u, %u, %u, %u, 0x%08x): under construction\n",
-         __func__, mode, x, y, width, height, color);
+uint8_t status, scanCode;
+int counter = 0;
+int err = 0;
 
-  return 1;
+int (video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
+uint16_t width, uint16_t height, uint32_t color) {
+  int r, ipc_status;
+  uint8_t irqset, idx = 0;
+  message msg;
+  bool ignore = false;
+  uint8_t scanCodes[2];
+
+  if (vg_init(mode) == NULL)
+    return 1;
+  
+  if (vg_draw_rectangle(x, y, width, height, color))
+    return 1;
+
+  if (kbd_subscribe_int(&irqset)) return 1;
+
+  while (scanCode != ESC_CODE) {
+    if ( (r = driver_receive(ANY, &msg, &ipc_status) ) != 0) {
+      fprintf(stderr, "driver_receive failed with: %d\n", r);
+      continue;
+    }
+    if (is_ipc_notify(ipc_status)) {
+      switch(_ENDPOINT_P(msg.m_source)) {
+        case HARDWARE: 
+          if (msg.m_notify.interrupts & BIT(irqset)) {
+            kbc_ih();
+
+            if (err == 1)
+              continue;
+            else if (err == 2)
+              ignore = true;
+            
+            if (scanCode == TWO_BYTE_CODE) {
+              scanCodes[idx++] = scanCode;
+            }
+            else {
+              scanCodes[idx] = scanCode;
+              if (!ignore) {
+                bool isMakecode = idx == 0 ? !(scanCodes[0] & BIT(7)) : !(scanCodes[1] & BIT(7));
+                kbd_print_scancode(isMakecode, idx + 1, scanCodes);
+                ignore = false;
+              }
+              idx = 0;
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    else {}
+  }
+
+  if (kbd_unsubscribe_int()) return 1;
+
+  if (vg_exit())
+    return 1;
+
+  return 0;
 }
 
 int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, uint8_t step) {
