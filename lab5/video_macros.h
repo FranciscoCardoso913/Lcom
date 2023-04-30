@@ -12,6 +12,7 @@
 #define FIRST_BYTE_MASK 0x000000FF
 #define SECOND_BYTE_MASK 0x0000FF00
 #define THIRD_BYTE_MASK 0x00FF0000
-#define COLOR_BITS(n) (BIT(n) - 1)
+#define MASK_N_BITS(n) (BIT(n) - 1)
+#define MASK_32_BITS 0xffffffff
 
 #endif

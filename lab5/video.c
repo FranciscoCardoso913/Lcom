@@ -7,8 +7,9 @@ static void *video_mem;
 static unsigned h_res;
 static unsigned v_res;
 static unsigned bits_per_pixel;
-
-int counterrr = 0;
+static uint8_t red_mask_size, green_mask_size, blue_mask_size;
+static uint8_t red_lsb_position, green_lsb_position, blue_lsb_position;
+static bool is_indexed = false;
 
 void* (vg_init)(uint16_t mode) {
   vbe_mode_info_t vbe_mode_info;
@@ -18,6 +19,14 @@ void* (vg_init)(uint16_t mode) {
   h_res = vbe_mode_info.XResolution;
   v_res = vbe_mode_info.YResolution;
   bits_per_pixel = vbe_mode_info.BitsPerPixel;
+  red_mask_size = vbe_mode_info.RedMaskSize;
+  green_mask_size = vbe_mode_info.GreenMaskSize;
+  blue_mask_size = vbe_mode_info.BlueMaskSize;
+  red_lsb_position = vbe_mode_info.RedFieldPosition;
+  green_lsb_position = vbe_mode_info.GreenFieldPosition;
+  blue_lsb_position = vbe_mode_info.BlueFieldPosition;
+
+  if (mode == 0x105) is_indexed = true;
 
   if (map_vram(vbe_mode_info.PhysBasePtr))
     return NULL;
@@ -110,11 +119,75 @@ int vg_draw_pixel(uint16_t x, uint16_t y, uint32_t color) {
     return 1;
   
   if (bits_per_pixel != 32)
-    color &= COLOR_BITS(bits_per_pixel);
+    color &= MASK_N_BITS(bits_per_pixel);
   
   uint8_t *pixelPtr = (uint8_t *) video_mem + (x + y * h_res) * byteOffset;
 
   memcpy(pixelPtr, &color, byteOffset);
+
+  return 0;
+}
+
+uint32_t get_color_field_mask(uint8_t mask_size, uint8_t lsb) {
+  uint32_t withFieldMask, withoutFieldMask;
+
+  if (mask_size + lsb == 32)
+    withFieldMask = MASK_32_BITS;
+  else
+    withFieldMask = MASK_N_BITS(lsb + mask_size);
+  
+  if (lsb != 0)
+    withoutFieldMask = MASK_N_BITS(lsb);
+  else
+    withoutFieldMask = 0;
+
+  return withFieldMask - withoutFieldMask;
+
+}
+
+uint32_t get_specific_color_field(uint32_t color, uint8_t mask_size, uint8_t lsb) {
+  return (get_color_field_mask(mask_size, lsb) & color) >> lsb;
+}
+
+uint32_t get_pattern_indexed_color(uint8_t no_rectangles, uint32_t first, uint8_t step, unsigned row, unsigned col) {
+  return (first + (row * no_rectangles + col) * step) % BIT(bits_per_pixel);  
+}
+
+uint32_t get_pattern_direct_color(uint8_t no_rectangles, uint32_t first, uint8_t step, unsigned row, unsigned col) {
+  uint32_t red_field, green_field, blue_field;
+
+  red_field = get_specific_color_field(first, red_mask_size, red_lsb_position);
+
+  green_field = get_specific_color_field(first, green_mask_size, green_lsb_position);
+
+  blue_field = get_specific_color_field(first, blue_mask_size, blue_lsb_position);
+
+  red_field = (red_field + col * step) % BIT(red_mask_size);
+
+  green_field = (green_field + row * step) % BIT(green_mask_size);
+
+  blue_field = (blue_field + (col + row) * step) % BIT(blue_mask_size);
+
+  return (red_field << red_lsb_position) |
+          (green_field << green_lsb_position) |
+          (blue_field << blue_lsb_position);
+}
+
+int draw_pattern(uint8_t no_rectangles, uint32_t first, uint8_t step) {
+  unsigned rect_side_x = h_res / no_rectangles;
+  unsigned rect_side_y = v_res / no_rectangles;
+
+  for (unsigned row = 0; row < no_rectangles; row++) {
+    for (unsigned col = 0; col < no_rectangles; col++) {
+
+      uint32_t color = is_indexed ? 
+        get_pattern_indexed_color(no_rectangles, first, step, row, col) :
+        get_pattern_direct_color(no_rectangles, first, step, row, col);
+      
+      if (vg_draw_rectangle(rect_side_x * col, rect_side_y * row, rect_side_x, rect_side_y, color))
+        return 1;
+    }
+  }
 
   return 0;
 }

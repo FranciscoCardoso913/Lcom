@@ -89,8 +89,6 @@ uint16_t width, uint16_t height, uint32_t color) {
             else {
               scanCodes[idx] = scanCode;
               if (!ignore) {
-                bool isMakecode = idx == 0 ? !(scanCodes[0] & BIT(7)) : !(scanCodes[1] & BIT(7));
-                kbd_print_scancode(isMakecode, idx + 1, scanCodes);
                 ignore = false;
               }
               idx = 0;
@@ -113,11 +111,61 @@ uint16_t width, uint16_t height, uint32_t color) {
 }
 
 int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, uint8_t step) {
-  /* To be completed */
-  printf("%s(0x%03x, %u, 0x%08x, %d): under construction\n", __func__,
-         mode, no_rectangles, first, step);
+  int r, ipc_status;
+  uint8_t irqset, idx = 0;
+  message msg;
+  bool ignore = false;
+  uint8_t scanCodes[2];
 
-  return 1;
+  if (vg_init(mode) == NULL)
+    return 1;
+  
+  if (draw_pattern(no_rectangles, first, step))
+    return 1;
+
+  if (kbd_subscribe_int(&irqset)) return 1;
+
+  while (scanCode != ESC_CODE) {
+    if ( (r = driver_receive(ANY, &msg, &ipc_status) ) != 0) {
+      fprintf(stderr, "driver_receive failed with: %d\n", r);
+      continue;
+    }
+    if (is_ipc_notify(ipc_status)) {
+      switch(_ENDPOINT_P(msg.m_source)) {
+        case HARDWARE: 
+          if (msg.m_notify.interrupts & BIT(irqset)) {
+            kbc_ih();
+
+            if (err == 1)
+              continue;
+            else if (err == 2)
+              ignore = true;
+            
+            if (scanCode == TWO_BYTE_CODE) {
+              scanCodes[idx++] = scanCode;
+            }
+            else {
+              scanCodes[idx] = scanCode;
+              if (!ignore) {
+                ignore = false;
+              }
+              idx = 0;
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    else {}
+  }
+
+  if (kbd_unsubscribe_int()) return 1;
+
+  if (vg_exit())
+    return 1;
+
+  return 0;
 }
 
 int(video_test_xpm)(xpm_map_t xpm, uint16_t x, uint16_t y) {
