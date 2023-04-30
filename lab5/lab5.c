@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 
 int(video_test_init)(uint16_t mode, uint8_t delay) {
 
-  if(video_graphic_init(mode)) {
+  if(video_set_mode(mode)) {
     printf("Error in vg_init()\n");
     return 1;
   }
@@ -54,32 +54,22 @@ int(video_test_init)(uint16_t mode, uint8_t delay) {
 int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
                           uint16_t width, uint16_t height, uint32_t color) {
   
-  set_mem(mode);
-  
-  if (video_graphic_init(mode)) {
+  if(set_mem(mode)) {
+    printf("Could not set the memory\n");
+    return 1;
+  }
+
+  if (video_set_mode(mode)) {
     printf("Error in vg_init()\n");
     return 1;
   }
 
-  if (kbd_subscribe_int()) {
-    printf("Error in kbd_subscribe_int()\n");
-    return 1;
-  }
-
-
-  if(vg_draw_rectangle(x, y, width, height, color)) {
+  if(video_draw_rectangle(x, y, width, height, color)) {
     printf("Error in video_draw_rectangle()\n");
     return 1;
   }
 
   wait_for_esc();
-
-
-
-  if(kbd_unsubscribe_int()) {
-    printf("Error in kbd_unsibscribe_int()\n");
-    return 1;
-  }
 
   if(vg_exit()) {
     printf("Error in vg_exit()\n");

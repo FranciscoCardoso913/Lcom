@@ -6,11 +6,11 @@
 
 int timer_hook_id = 1;
 int kbd_hook_id = 0;
-uint8_t scancode, status;
+uint8_t scancode, status = 0;
 int cnt = 0;
 
-int kbd_subscribe_int() {
-  
+int kbd_subscribe_int(uint8_t *bit_no) {
+  *bit_no = BIT(kbd_hook_id);
   if (sys_irqsetpolicy( KBD_IRQ, IRQ_REENABLE | IRQ_EXCLUSIVE, &kbd_hook_id)) {
     printf("Error subscribing the keyboard interrupts! \n");
     return 1;
@@ -109,7 +109,7 @@ int kbc_read_data(uint8_t *data) {
 
     if (status & (TIMEOUT_ERR | PARITY_ERR)) {
       printf("Error: Invalid data");
-      return 2;
+      return 1;
     }
 
     return 0;
@@ -118,7 +118,7 @@ int kbc_read_data(uint8_t *data) {
 
   tickdelay(micros_to_ticks(DELAY_US));
 
-  return 2;
+  return 1;
 
 }
 
@@ -129,12 +129,20 @@ void (timer_int_handler)() {
 
 void(wait_for_esc)(){
 
-  int ipc_status, r;
-  message msg;
+  scancode = 0;
+  uint8_t hook_id;
 
+  if (kbd_subscribe_int(&hook_id)) {
+    printf("Error in kbd_subscribe_int()\n");
+    return;
+  }
+
+  uint8_t bytes[2];
+  int ipc_status, r, idx=0;
+  message msg;
   
   while ( scancode != ESC_BRK ) {
-    
+
     if ( ( r = driver_receive(ANY, &msg, &ipc_status) ) != 0 ) {
       printf("driver_receive failed with: %d", r);
       return;
@@ -142,14 +150,27 @@ void(wait_for_esc)(){
 
     if (is_ipc_notify(ipc_status) && _ENDPOINT_P(msg.m_source) == HARDWARE) {
 
-      if (msg.m_notify.interrupts & BIT(kbd_hook_id)) {
-        
+      if (msg.m_notify.interrupts & hook_id) {
+
         kbc_ih();
+        if (scancode == TWO_BYTE) {
+          bytes[idx++] = scancode;
+        }
+        else {
+          bytes[0] = scancode;
+          idx = 1;
+        }
 
       }
 
     }
 
   }
+
+  if(kbd_unsubscribe_int()) {
+    printf("Error in kbd_unsibscribe_int()\n");
+    return;
+  }
+
 
 }

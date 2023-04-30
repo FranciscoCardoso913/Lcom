@@ -21,15 +21,11 @@ int (video_set_mode(uint16_t mode)) {
     return 0;
 }
 
-int (video_graphic_init)() {
-    return video_set_mode(0x4f02);
-}
-
 vbe_mode_info_t vmi_p;
 static uint8_t *video_mem;   
 uint16_t h_res, v_res, bits_per_pixel;      
 
-void set_mem(uint16_t mode){
+int set_mem(uint16_t mode){
 
     struct minix_mem_range mr;
     size_t vram_size;  
@@ -40,9 +36,9 @@ void set_mem(uint16_t mode){
 
     h_res = vmi_p.XResolution;
     v_res = vmi_p.YResolution;
-    bits_per_pixel = vmi_p.BitsPerPixel;
+    bits_per_pixel = vmi_p.BitsPerPixel+7;
 
-    vram_size = h_res * v_res * (bits_per_pixel / 8);
+    vram_size = h_res * v_res * (bits_per_pixel/8);
 
     mr.mr_base = vmi_p.PhysBasePtr;	
     mr.mr_limit = mr.mr_base + vram_size;  
@@ -55,5 +51,47 @@ void set_mem(uint16_t mode){
     if(video_mem == MAP_FAILED)
     panic("couldn't map video memory");
 
+    return 0;
 }
 
+int (video_draw_pixel)(uint16_t x, uint16_t y, uint32_t color) {
+
+    if(x > h_res || y > v_res || x < 0 || y < 0) {
+        printf("Error in video_draw_pixel(): invalid coordinates\n");
+        return 1;
+    }
+
+    size_t k = (x + (y * h_res)) * (bits_per_pixel/8);
+                
+    if (memcpy(&video_mem[k], &color, bits_per_pixel/8) == NULL) {
+        printf("Error in video_draw_pixel(): memcpy failed\n");
+        return 1;
+    }
+
+    return 0;
+
+}
+
+int (video_draw_line)(uint16_t x, uint16_t y, uint16_t lenght, uint32_t color) {
+
+    for (int i = 0; i < lenght && i < h_res; i++) {
+        if(video_draw_pixel(x + i, y, color)) {
+            return 1;
+        }
+    }
+
+    return 0;
+
+}
+
+int (video_draw_rectangle)(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint32_t color) {
+    
+    for (int i = 0; i < height && i< v_res ; i++ ) {
+
+        if(video_draw_line(x,y+i,width,color)) return 1;
+
+    }
+
+    return 0;
+
+}

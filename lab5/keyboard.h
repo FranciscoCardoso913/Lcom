@@ -6,7 +6,7 @@
 
 #define DELAY_US    20000
 
-int kbd_subscribe_int();
+int kbd_subscribe_int(uint8_t *bit_no);
 
 int kbd_unsubscribe_int();
 
