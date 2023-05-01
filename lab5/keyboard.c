@@ -2,9 +2,7 @@
 
 #include "keyboard.h"
 #include "i8042.h"
-#include "../lab2/i8254.h"
 
-int timer_hook_id = 1;
 int kbd_hook_id = 0;
 uint8_t scancode, status = 0;
 int cnt = 0;
@@ -27,27 +25,6 @@ int kbd_unsubscribe_int() {
 
     return 0; 
 
-}
-
-int (timer_subscribe_int)() {
-
-  if (sys_irqsetpolicy(TIMER0_IRQ, IRQ_REENABLE, &timer_hook_id)) {
-    printf("Error setting the policy! \n");
-    return 1;
-  }
-
-  return 0;
-
-}
-
-int (timer_unsubscribe_int)() {
-  
-  if (sys_irqrmpolicy(&timer_hook_id)) {
-    printf("Error removing the policy! \n");
-    return 1;
-  }
-
-  return 0;
 }
 
 void (kbc_ih)() {
@@ -121,11 +98,6 @@ int kbc_read_data(uint8_t *data) {
   return 1;
 
 }
-
-void (timer_int_handler)() {
-  cnt++;
-}
-
 
 void(wait_for_esc)(){
 
