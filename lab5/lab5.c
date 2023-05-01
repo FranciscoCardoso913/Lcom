@@ -81,18 +81,58 @@ int(video_test_rectangle)(uint16_t mode, uint16_t x, uint16_t y,
 }
 
 int(video_test_pattern)(uint16_t mode, uint8_t no_rectangles, uint32_t first, uint8_t step) {
-  /* To be completed */
-  printf("%s(0x%03x, %u, 0x%08x, %d): under construction\n", __func__,
-         mode, no_rectangles, first, step);
+  
+  if(set_mem(mode)){
+    printf("Could not set the memory\n");
+    return 1;
+  }
 
-  return 1;
+  if(video_set_mode(mode)) {
+    printf("Error in vg_init()\n");
+    return 1;
+  }
+
+  if(video_draw_pattern(no_rectangles, first, step)) {
+    printf("Error in video_draw_pattern()\n");
+    return 1;
+  }
+
+
+  wait_for_esc();
+
+  if(vg_exit()) {
+    printf("ERror in vg_exit() \n");
+    return 1;
+  }
+
+  return 0; 
 }
 
 int(video_test_xpm)(xpm_map_t xpm, uint16_t x, uint16_t y) {
-  /* To be completed */
-  printf("%s(%8p, %u, %u): under construction\n", __func__, xpm, x, y);
+  
+  if(set_mem(0x105)) {
+    printf("Could not set the memory\n");
+    return 1;
+  }
 
-  return 1;
+  if (video_set_mode(0x105)){
+    printf("Error in vg_init()\n");
+    return 1;
+  }
+
+  if(video_draw_xpm(xpm, x, y)) {
+    printf("Error in video_draw_xpm()\n");
+    return 1;
+  }
+
+  wait_for_esc();
+
+  if(vg_exit()) {
+    printf("Error in vg_exit()\n");
+    return 1;
+  }
+
+  return 0;
 }
 
 int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
