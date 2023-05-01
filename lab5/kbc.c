@@ -5,9 +5,8 @@
 #include "i8042.h"
 #include <../lab2/i8254.h>
 
-int hookid_kbc, hookid_timer, err;
+int hookid_kbc = 2, err;
 extern uint8_t status, scanCode;
-extern int counter;
 
 int (kbd_subscribe_int)(uint8_t *bit_no) {
   *bit_no = hookid_kbc;
@@ -26,29 +25,6 @@ int (kbd_unsubscribe_int)() {
   }
 
   return 0;
-}
-
-int (timer_subscribe_int)(uint8_t *bit_no) {
-  *bit_no = hookid_timer;
-  if (sys_irqsetpolicy(TIMER0_IRQ, IRQ_REENABLE, &hookid_timer)) {
-    fprintf(stderr, "Error while setting kbd subscription\n");
-    return 1;
-  }
-
-  return 0;
-}
-
-int (timer_unsubscribe_int)() {
-  if (sys_irqrmpolicy(&hookid_timer)) {
-    fprintf(stderr, "Error while removing kbd subscription\n");
-    return 1;
-  }
-
-  return 0;
-}
-
-void (timer_int_handler)() {
-  counter++;
 }
 
 int kbc_read_status() {

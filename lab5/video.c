@@ -10,6 +10,8 @@ static unsigned bits_per_pixel;
 static uint8_t red_mask_size, green_mask_size, blue_mask_size;
 static uint8_t red_lsb_position, green_lsb_position, blue_lsb_position;
 static bool is_indexed = false;
+static xpm_image_t img;
+static uint8_t *bitmap;
 
 void* (vg_init)(uint16_t mode) {
   vbe_mode_info_t vbe_mode_info;
@@ -193,9 +195,6 @@ int draw_pattern(uint8_t no_rectangles, uint32_t first, uint8_t step) {
 }
 
 int vg_draw_xpm(xpm_map_t xpm, uint16_t x, uint16_t y) {
-  xpm_image_t img;
-  uint8_t *bitmap = xpm_load(xpm, XPM_INDEXED, &img);
-
   for (uint16_t line = 0; line < img.height; line++) {
     for (uint16_t col = 0; col < img.width; col++) {
       if (vg_draw_pixel(x + col, y + line, bitmap[line * img.width + col]))
@@ -204,4 +203,14 @@ int vg_draw_xpm(xpm_map_t xpm, uint16_t x, uint16_t y) {
   }
 
   return 0;
+}
+
+int erase_xpm(uint16_t x, uint16_t y) {
+  if (vg_draw_rectangle(x, y, img.width, img.height, COLOR_BLACK))
+    return 1;
+  return 0;
+}
+
+void xpm_init(xpm_map_t xpm) {
+  bitmap = xpm_load(xpm, XPM_INDEXED, &img);
 }

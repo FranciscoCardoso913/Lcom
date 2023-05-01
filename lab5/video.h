@@ -23,4 +23,8 @@ int draw_pattern(uint8_t no_rectangles, uint32_t first, uint8_t step);
 
 int vg_draw_xpm(xpm_map_t xpm, uint16_t x, uint16_t y);
 
+int erase_xpm(uint16_t x, uint16_t y);
+
+void xpm_init(xpm_map_t xpm);
+
 #endif

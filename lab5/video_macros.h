@@ -15,5 +15,6 @@
 #define THIRD_BYTE_MASK 0x00FF0000
 #define MASK_N_BITS(n) (BIT(n) - 1)
 #define MASK_32_BITS 0xffffffff
+#define COLOR_BLACK 0
 
 #endif
