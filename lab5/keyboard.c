@@ -5,7 +5,6 @@
 
 int kbd_hook_id = 0;
 uint8_t scancode, status = 0;
-int cnt = 0;
 
 int kbd_subscribe_int(uint8_t *bit_no) {
   *bit_no = BIT(kbd_hook_id);
@@ -30,7 +29,7 @@ int kbd_unsubscribe_int() {
 void (kbc_ih)() {
 
   if (kbc_read_data(&scancode)) {
-    printf("Error reading the data");
+    printf("Error reading the data \n");
   }
 
 }
@@ -77,25 +76,17 @@ int kbc_read_data(uint8_t *data) {
 
   if (kbc_read_status(&status)) return 1;
 
-  if ((status & OBF) && !(status & AUX)) {
-
-    if (util_sys_inb(OUT_BUF, data)) {
-      printf("Error reading the buffer");
-      return 1;
-    }
-
-    if (status & (TIMEOUT_ERR | PARITY_ERR)) {
-      printf("Error: Invalid data");
-      return 1;
-    }
-
-    return 0;
+  if (util_sys_inb(OUT_BUF, data)) {
+    printf("Error reading the buffer");
+    return 1;
   }
 
+  if (status & (TIMEOUT_ERR | PARITY_ERR)) {
+    printf("Error: Invalid data");
+    return 1;
+  }
 
-  tickdelay(micros_to_ticks(DELAY_US));
-
-  return 1;
+    return 0;
 
 }
 

@@ -23,7 +23,7 @@ int (video_set_mode(uint16_t mode)) {
 
 vbe_mode_info_t vmi_p;
 static uint8_t *video_mem;   
-uint16_t h_res, v_res, bits_per_pixel;      
+uint16_t h_res, v_res, bytes_per_pixel;      
 
 int set_mem(uint16_t mode){
 
@@ -36,9 +36,8 @@ int set_mem(uint16_t mode){
 
     h_res = vmi_p.XResolution;
     v_res = vmi_p.YResolution;
-    bits_per_pixel = vmi_p.BitsPerPixel+7;
-    vram_size = h_res * v_res * (bits_per_pixel/8);
-
+    bytes_per_pixel = (vmi_p.BitsPerPixel+7)/8.0;
+    vram_size = h_res * v_res * (bytes_per_pixel);
     mr.mr_base = vmi_p.PhysBasePtr;	
     mr.mr_limit = mr.mr_base + vram_size;  
     			
@@ -60,9 +59,9 @@ int (video_draw_pixel)(uint16_t x, uint16_t y, uint32_t color) {
         return 1;
     }
 
-    size_t k = (x + (y * h_res)) * (bits_per_pixel/8);
+    size_t k = (x + (y * h_res)) * (bytes_per_pixel);
                 
-    if (memcpy(&video_mem[k], &color, (bits_per_pixel/8)) == NULL) {
+    if (memcpy(&video_mem[k], &color, (bytes_per_pixel)) == NULL) {
         printf("Error in video_draw_pixel(): memcpy failed\n");
         return 1;
     }

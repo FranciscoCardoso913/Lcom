@@ -139,6 +139,9 @@ int(video_test_xpm)(xpm_map_t xpm, uint16_t x, uint16_t y) {
   return 0;
 }
 
+  extern uint8_t scancode;
+  extern int counter;
+
 int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint16_t yf,
                      int16_t speed, uint8_t fr_rate) {
   
@@ -165,8 +168,6 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
   int r, ipc_status, idx = 0;
   message msg;
   uint8_t bytes[2];
-  extern uint8_t scancode;
-  extern int counter;
 
   int16_t movement;
   
@@ -181,7 +182,9 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
     return 1;
   }
 
-  while (bytes[idx] != ESC_BRK) {
+  bool done = false;
+
+  while (bytes[0] != ESC_BRK && !done) {
 
     if((r = driver_receive(ANY, &msg, &ipc_status)) != 0) {
       printf("Error in driver_receive()\n");
@@ -194,24 +197,29 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
 
         if ((speed < 0 && counter == speed) || speed > 0) {
 
-          video_draw_rectangle(xi,yi, 100,100,0x000000);
+          if(video_draw_rectangle(xi,yi, 100,100,0x000000)){
+            printf("Error in video_draw_rectangle()\n");
+            return 1;
+          }
 
           movement = speed < 0 ? 1 : speed;
 
           if(horizontal) {
             
-            if(xi + movement < xf) xi += movement;
+            if((xi + movement) < xf) xi += movement;
             else {
               xi = xf;
+              done=true;
               break;
             }
             
           }
           else {
 
-            if (yi + movement < yf) yi += movement;
+            if ((yi + movement) < yf) yi += movement;
             else {
               yi = yf;
+              done=true;
               break;
             }
 
@@ -219,7 +227,10 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
 
           counter = 0;
 
-          video_draw_xpm(xpm, xi, yi);
+          if(video_draw_xpm(xpm, xi, yi)){
+            printf("Error in video_draw_xpm()\n");
+            return 1;
+          } 
 
         }
 
@@ -253,6 +264,8 @@ int(video_test_move)(xpm_map_t xpm, uint16_t xi, uint16_t yi, uint16_t xf, uint1
     printf("Error in keyboard_unsubscribe_int()\n");
     return 1;
   }
+
+
 
   if (vg_exit()) {
     printf("Error in vg_exit()\n");
