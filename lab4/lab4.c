@@ -205,8 +205,12 @@ int (mouse_test_gesture)(uint8_t x_len, uint8_t tolerance) {
     else {}
     
     if (mouseEvent) {
-      if (mouse_handle_event(ev, x_len, tolerance))
+      if (mouse_handle_event(ev, x_len, tolerance)) {
+        free(ev);
         break;
+      }
+        break;
+      free(ev);
       mouseEvent = false;
     }
   }

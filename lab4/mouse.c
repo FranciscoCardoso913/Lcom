@@ -204,6 +204,7 @@ struct mouse_ev* mouse_get_event(struct packet *pp) {
     event->type = BUTTON_EV;
 
   lastpp = *pp;
+
   return event;
 }
 
